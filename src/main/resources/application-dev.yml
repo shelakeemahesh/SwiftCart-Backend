@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/swiftcart?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: password
+  redis:
+    host: localhost
+    port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+  elasticsearch:
+    host: localhost
+    port: 9200
+jwt:
+  secret: dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=

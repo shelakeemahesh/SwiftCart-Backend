@@ -1,0 +1,114 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml
+    min-response-size: 1024
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:YOUR_GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET:YOUR_GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/oauth2/callback/{registrationId}"
+            scope:
+              - email
+              - profile
+  application:
+    name: swiftcart-backend
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/swiftcart?useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DATABASE_USER:root}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    show-sql: false
+  hikari:
+    minimum-idle: 5
+    maximum-pool-size: 20
+    connection-timeout: 30000
+    idle-timeout: 600000
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: swiftcart-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+jwt:
+  secret: ${JWT_SECRET:dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=}
+  access-token-expiry-ms: 900000 # 15 minutes
+  refresh-token-expiry-ms: 604800000 # 7 days
+
+elasticsearch:
+  host: ${ES_HOST:localhost}
+  port: ${ES_PORT:9200}
+  uris: http://${elasticsearch.host}:${elasticsearch.port}
+
+razorpay:
+  key:
+    id: ${RAZORPAY_KEY_ID:rzp_test_mockkey}
+    secret: ${RAZORPAY_KEY_SECRET:mocksecret}
+  webhook:
+    secret: ${RAZORPAY_WEBHOOK_SECRET:mockwebhooksecret}
+
+aws:
+  s3:
+    bucket: ${S3_BUCKET:swiftcart-bucket}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+
+management:
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: false
+    elasticsearch:
+      enabled: false
+    kafka:
+      enabled: false
+
+app:
+  oauth2:
+    authorizedRedirectUris: http://localhost:5175/oauth2/callback
