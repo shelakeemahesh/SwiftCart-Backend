@@ -55,6 +55,22 @@ public class User {
     @Column(name = "email_verified")
     private boolean emailVerified = false;
 
+    // Seller-specific fields
+    @Column(name = "business_name")
+    private String businessName;
+
+    @Column(name = "gstin", length = 15)
+    private String gstin;
+
+    @Column(name = "pickup_address", columnDefinition = "TEXT")
+    private String pickupAddress;
+
+    @Column(name = "pickup_pincode", length = 6)
+    private String pickupPincode;
+
+    @Column(name = "pan_number", length = 10)
+    private String panNumber;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -118,6 +134,21 @@ public class User {
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 
+    public String getBusinessName() { return businessName; }
+    public void setBusinessName(String businessName) { this.businessName = businessName; }
+
+    public String getGstin() { return gstin; }
+    public void setGstin(String gstin) { this.gstin = gstin; }
+
+    public String getPickupAddress() { return pickupAddress; }
+    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
+
+    public String getPickupPincode() { return pickupPincode; }
+    public void setPickupPincode(String pickupPincode) { this.pickupPincode = pickupPincode; }
+
+    public String getPanNumber() { return panNumber; }
+    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -141,6 +172,11 @@ public class User {
         private String providerId;
         private String avatarUrl;
         private boolean emailVerified = false;
+        private String businessName;
+        private String gstin;
+        private String pickupAddress;
+        private String pickupPincode;
+        private String panNumber;
 
         public UserBuilder phone(String phone) {
             this.phone = phone;
@@ -197,6 +233,31 @@ public class User {
             return this;
         }
 
+        public UserBuilder businessName(String businessName) {
+            this.businessName = businessName;
+            return this;
+        }
+
+        public UserBuilder gstin(String gstin) {
+            this.gstin = gstin;
+            return this;
+        }
+
+        public UserBuilder pickupAddress(String pickupAddress) {
+            this.pickupAddress = pickupAddress;
+            return this;
+        }
+
+        public UserBuilder pickupPincode(String pickupPincode) {
+            this.pickupPincode = pickupPincode;
+            return this;
+        }
+
+        public UserBuilder panNumber(String panNumber) {
+            this.panNumber = panNumber;
+            return this;
+        }
+
         public User build() {
             User user = new User();
             user.setPhone(this.phone);
@@ -210,6 +271,11 @@ public class User {
             user.setProviderId(this.providerId);
             user.setAvatarUrl(this.avatarUrl);
             user.setEmailVerified(this.emailVerified);
+            user.setBusinessName(this.businessName);
+            user.setGstin(this.gstin);
+            user.setPickupAddress(this.pickupAddress);
+            user.setPickupPincode(this.pickupPincode);
+            user.setPanNumber(this.panNumber);
             return user;
         }
     }

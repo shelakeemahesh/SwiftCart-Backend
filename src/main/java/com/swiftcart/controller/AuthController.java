@@ -44,6 +44,12 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "User registered successfully. Please verify your phone number via OTP."));
     }
 
+    @PostMapping("/register/seller")
+    public ResponseEntity<Map<String, String>> registerSeller(@Valid @RequestBody SellerRegisterRequest request) {
+        authService.registerSeller(request);
+        return ResponseEntity.ok(Map.of("message", "Seller registered successfully. Please verify your phone number via OTP."));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,

@@ -130,6 +130,32 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    @Transactional
+    public void registerSeller(SellerRegisterRequest request) {
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone number already registered");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email address already registered");
+        }
+
+        User user = User.builder()
+                .phone(request.getPhone())
+                .email(request.getEmail())
+                .name(request.getName())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .role(Role.SELLER)
+                .isVerified(false)
+                .businessName(request.getBusinessName())
+                .gstin(request.getGstin())
+                .panNumber(request.getPanNumber())
+                .pickupAddress(request.getPickupAddress())
+                .pickupPincode(request.getPickupPincode())
+                .build();
+
+        userRepository.save(user);
+    }
+
     public AuthResponse refreshToken(String oldRefreshToken) {
         if (oldRefreshToken == null || !jwtUtil.validateTokenOnly(oldRefreshToken)) {
             throw new RuntimeException("Invalid refresh token");
