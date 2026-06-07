@@ -50,6 +50,15 @@ public class AuthService {
             user.setOtp(otp);
             user.setOtpExpiresAt(LocalDateTime.now().plusMinutes(10));
             userRepository.save(user);
+
+            // Send OTP via email if user has a registered email address
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                notificationService.sendEmail(
+                    user.getEmail(),
+                    "SwiftCart - Your Verification OTP",
+                    "Dear " + user.getName() + ",\n\nYour SwiftCart verification OTP is: " + otp + ". Valid for 10 minutes.\n\nThank you for shopping with SwiftCart! ⚡"
+                );
+            }
         });
 
         notificationService.sendOtpSms(phone, otp);

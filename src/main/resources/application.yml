@@ -46,16 +46,16 @@ spring:
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
   mail:
-    host: ${MAIL_HOST:localhost}
+    host: ${MAIL_HOST:smtp-relay.brevo.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:a044e5001@smtp-brevo.com}
+    password: ${MAIL_PASSWORD:YOUR_BREVO_SMTP_KEY}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: true
           starttls:
-            enable: false
+            enable: true
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
     consumer:
