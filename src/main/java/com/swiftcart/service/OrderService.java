@@ -59,6 +59,11 @@ public class OrderService {
         return orderRepository.findByUserId(userId, pageable);
     }
 
+    public java.util.Optional<Order> getLatestActiveOrder(Long userId) {
+        List<OrderStatus> inactiveStatuses = List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.RETURNED);
+        return orderRepository.findFirstByUserIdAndStatusNotInOrderByIdDesc(userId, inactiveStatuses);
+    }
+
     public Order getOrderDetail(String orderUuid) {
         return orderRepository.findByOrderUuid(orderUuid)
                 .orElseThrow(() -> new RuntimeException("Order not found with UUID: " + orderUuid));

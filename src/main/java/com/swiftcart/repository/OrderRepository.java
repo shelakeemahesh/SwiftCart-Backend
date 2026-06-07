@@ -18,6 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
     Page<Order> findByUserId(Long userId, Pageable pageable);
     Page<Order> findByUserIdAndStatus(Long userId, OrderStatus status, Pageable pageable);
+    Optional<Order> findFirstByUserIdAndStatusNotInOrderByIdDesc(Long userId, List<OrderStatus> statuses);
 
     @Query("SELECT o FROM Order o JOIN o.items item WHERE item.product.seller.id = :sellerId")
     List<Order> findBySellerId(@Param("sellerId") Long sellerId);

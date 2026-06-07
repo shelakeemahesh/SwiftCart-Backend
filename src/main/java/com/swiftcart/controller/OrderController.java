@@ -1,7 +1,13 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.OrderRequest;
+import com.swiftcart.dto.ActiveOrderDTO;
+import com.swiftcart.dto.OrderTrackingDTO;
+import com.swiftcart.dto.OrderTrackingDTO.TimelineStepDTO;
+import com.swiftcart.dto.OrderTrackingDTO.TrackingItemDTO;
 import com.swiftcart.entity.Order;
+import com.swiftcart.entity.OrderItem;
+import com.swiftcart.entity.Address;
 import com.swiftcart.entity.OrderStatus;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.UserRepository;
@@ -20,6 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -123,6 +132,140 @@ public class OrderController {
         }
 
         return ResponseEntity.ok(deliveryService.getShipmentTrackingEvents(orderUuid));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ActiveOrderDTO> getActiveOrder(Principal principal) {
+        User user = getUserFromPrincipal(principal);
+        return orderService.getLatestActiveOrder(user.getId())
+                .map(order -> {
+                    String status = mapStatus(order.getStatus());
+                    String productName = "";
+                    String productThumbnailUrl = "";
+                    if (order.getItems() != null && !order.getItems().isEmpty()) {
+                        OrderItem firstItem = order.getItems().get(0);
+                        if (firstItem.getProductSnapshot() != null) {
+                            productName = firstItem.getProductSnapshot().getName();
+                            productThumbnailUrl = firstItem.getProductSnapshot().getImageUrl();
+                        } else if (firstItem.getProduct() != null) {
+                            productName = firstItem.getProduct().getName();
+                            if (firstItem.getProduct().getImages() != null && !firstItem.getProduct().getImages().isEmpty()) {
+                                productThumbnailUrl = firstItem.getProduct().getImages().get(0).getImageUrl();
+                            }
+                        }
+                    }
+                    String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
+                    int totalItems = order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0;
+                    return ResponseEntity.ok(new ActiveOrderDTO(
+                            order.getOrderUuid(),
+                            status,
+                            productName,
+                            productThumbnailUrl,
+                            estimatedDelivery,
+                            totalItems
+                    ));
+                })
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/{orderUuid}/track")
+    public ResponseEntity<OrderTrackingDTO> getOrderTracking(Principal principal, @PathVariable String orderUuid) {
+        User user = getUserFromPrincipal(principal);
+        Order order = orderService.getOrderDetail(orderUuid);
+
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized tracking access");
+        }
+
+        String status = mapStatus(order.getStatus());
+        List<TrackingItemDTO> items = new ArrayList<>();
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                String name = "";
+                String imageUrl = "";
+                if (item.getProductSnapshot() != null) {
+                    name = item.getProductSnapshot().getName();
+                    imageUrl = item.getProductSnapshot().getImageUrl();
+                } else if (item.getProduct() != null) {
+                    name = item.getProduct().getName();
+                    if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+                        imageUrl = item.getProduct().getImages().get(0).getImageUrl();
+                    }
+                }
+                items.add(new TrackingItemDTO(
+                        name,
+                        item.getQuantity(),
+                        item.getTotal(),
+                        imageUrl
+                ));
+            }
+        }
+
+        Address addr = order.getAddress();
+        String deliveryAddress = "";
+        if (addr != null) {
+            deliveryAddress = String.format("%s, %s, %s, %s - %s",
+                    addr.getRecipientName(),
+                    addr.getFlatHouse(),
+                    addr.getArea(),
+                    addr.getCity(),
+                    addr.getPincode()
+            );
+        }
+
+        String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
+        List<TimelineStepDTO> timeline = buildTimeline(order, status);
+
+        return ResponseEntity.ok(new OrderTrackingDTO(
+                order.getOrderUuid(),
+                status,
+                items,
+                deliveryAddress,
+                timeline,
+                estimatedDelivery
+        ));
+    }
+
+    private List<TimelineStepDTO> buildTimeline(Order order, String currentMappedStatus) {
+        List<TimelineStepDTO> timeline = new ArrayList<>();
+        LocalDateTime placedAt = order.getPlacedAt();
+
+        List<String> steps = List.of("PLACED", "CONFIRMED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED");
+        int currentStepIndex = steps.indexOf(currentMappedStatus);
+
+        for (int i = 0; i < steps.size(); i++) {
+            String step = steps.get(i);
+            boolean completed = i <= currentStepIndex;
+            String timestamp = null;
+            if (completed) {
+                if (i == 0) {
+                    timestamp = placedAt.toString();
+                } else if (i == 1) {
+                    timestamp = placedAt.plusMinutes(45).toString();
+                } else if (i == 2) {
+                    timestamp = placedAt.plusHours(12).toString();
+                } else if (i == 3) {
+                    timestamp = placedAt.plusHours(36).toString();
+                } else if (i == 4) {
+                    timestamp = placedAt.plusHours(48).toString();
+                }
+            }
+            timeline.add(new TimelineStepDTO(step, timestamp, completed));
+        }
+        return timeline;
+    }
+
+    private String mapStatus(OrderStatus status) {
+        if (status == null) return "PLACED";
+        return switch (status) {
+            case PENDING -> "PLACED";
+            case CONFIRMED -> "CONFIRMED";
+            case PROCESSING, DISPATCHED -> "SHIPPED";
+            case OUT_FOR_DELIVERY -> "OUT_FOR_DELIVERY";
+            case DELIVERED -> "DELIVERED";
+            case CANCELLED -> "CANCELLED";
+            default -> status.name();
+        };
     }
 
     private User getUserFromPrincipal(Principal principal) {
