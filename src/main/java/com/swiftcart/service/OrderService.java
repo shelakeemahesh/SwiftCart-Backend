@@ -29,6 +29,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final CouponRepository couponRepository;
     private final PricingService pricingService;
+    private final NotificationService notificationService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public OrderService(
@@ -40,6 +41,7 @@ public class OrderService {
             AddressRepository addressRepository,
             CouponRepository couponRepository,
             PricingService pricingService,
+            NotificationService notificationService,
             java.util.Optional<KafkaTemplate<String, Object>> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -49,6 +51,7 @@ public class OrderService {
         this.addressRepository = addressRepository;
         this.couponRepository = couponRepository;
         this.pricingService = pricingService;
+        this.notificationService = notificationService;
         this.kafkaTemplate = kafkaTemplate.orElse(null);
     }
 
@@ -250,6 +253,7 @@ public class OrderService {
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
             order.setPaymentStatus(PaymentStatus.REFUNDED); // Trigger refund logic
         }
+        notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CANCELLED");
         
         // Restore stock
         for (OrderItem item : order.getItems()) {
