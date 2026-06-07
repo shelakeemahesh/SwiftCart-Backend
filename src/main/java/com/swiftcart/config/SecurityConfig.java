@@ -19,6 +19,9 @@ import com.swiftcart.security.oauth2.CustomOAuth2UserService;
 import com.swiftcart.security.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.swiftcart.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import com.swiftcart.security.oauth2.OAuth2AuthenticationFailureHandler;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -52,6 +55,12 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions
+                .defaultAuthenticationEntryPointFor(
+                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                    new AntPathRequestMatcher("/api/**")
+                )
+            )
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
