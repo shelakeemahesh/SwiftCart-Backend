@@ -10,6 +10,7 @@ import com.swiftcart.entity.OrderItem;
 import com.swiftcart.entity.Address;
 import com.swiftcart.entity.OrderStatus;
 import com.swiftcart.entity.User;
+import com.swiftcart.entity.Role;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.DeliveryService;
 import com.swiftcart.service.OrderService;
@@ -73,7 +74,7 @@ public class OrderController {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
 
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized order access");
         }
 
@@ -97,7 +98,7 @@ public class OrderController {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
 
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized invoice download");
         }
 
@@ -127,7 +128,7 @@ public class OrderController {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
 
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized tracking access");
         }
 
@@ -173,7 +174,7 @@ public class OrderController {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
 
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized tracking access");
         }
 
