@@ -73,6 +73,14 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("message", "User deactivated successfully"));
     }
 
+    @PutMapping("/users/{id}/verify")
+    public ResponseEntity<User> verifyUser(@PathVariable Long id, @RequestParam boolean verified) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setVerified(verified);
+        return ResponseEntity.ok(userRepository.save(user));
+    }
+
     @GetMapping("/products")
     public ResponseEntity<Page<Product>> listProducts(
             @RequestParam(defaultValue = "0") int page,
