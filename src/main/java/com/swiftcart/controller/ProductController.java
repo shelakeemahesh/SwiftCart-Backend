@@ -74,7 +74,10 @@ public class ProductController {
             predicates.add(cb.equal(root.get("isActive"), true));
 
             if (categoryId != null) {
-                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+                predicates.add(cb.or(
+                    cb.equal(root.get("category").get("id"), categoryId),
+                    cb.equal(root.get("category").get("parent").get("id"), categoryId)
+                ));
             }
             if (sellerId != null) {
                 predicates.add(cb.equal(root.get("seller").get("id"), sellerId));

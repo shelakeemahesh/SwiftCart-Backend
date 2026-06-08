@@ -44,7 +44,13 @@ public class CategoryController {
         Pageable pageable = PageRequest.of(page, size);
         
         Page<Product> products = productRepository.findAll((root, query, cb) -> 
-            cb.and(cb.equal(root.get("category").get("id"), category.getId()), cb.equal(root.get("isActive"), true)), pageable);
+            cb.and(
+                cb.or(
+                    cb.equal(root.get("category").get("id"), category.getId()),
+                    cb.equal(root.get("category").get("parent").get("id"), category.getId())
+                ),
+                cb.equal(root.get("isActive"), true)
+            ), pageable);
             
         return ResponseEntity.ok(products);
     }
