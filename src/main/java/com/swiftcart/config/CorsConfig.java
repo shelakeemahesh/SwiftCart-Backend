@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.frontend.domain:http://localhost:5175}")
+    @Value("${app.frontend.domain:http://localhost:5173}")
     private String frontendDomain;
 
     @Bean
@@ -18,7 +18,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(frontendDomain)
+                        .allowedOrigins(frontendDomain, "http://localhost:5173", "http://localhost:5174", "http://localhost:5175")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true)
