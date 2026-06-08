@@ -42,9 +42,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
         try {
             username = jwtUtil.extractUsername(jwt);
+            Long userId = jwtUtil.extractUserId(jwt);
+            String roleName = jwtUtil.extractRole(jwt);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            if (username != null && userId != null && roleName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                com.swiftcart.entity.Role role = com.swiftcart.entity.Role.valueOf(roleName);
+                com.swiftcart.entity.User user = com.swiftcart.entity.User.builder()
+                        .phone(username.contains("@") ? null : username)
+                        .email(username.contains("@") ? username : username + "@swiftcart.com")
+                        .role(role)
+                        .isVerified(true)
+                        .build();
+                user.setId(userId);
+
+                com.swiftcart.security.CustomUserPrincipal userDetails = new com.swiftcart.security.CustomUserPrincipal(user);
 
                 if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

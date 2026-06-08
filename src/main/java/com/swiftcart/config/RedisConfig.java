@@ -19,7 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class RedisConfig {
+public class RedisConfig implements org.springframework.cache.annotation.CachingConfigurer {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RedisConfig.class);
 
     private GenericJackson2JsonRedisSerializer createJacksonSerializer() {
         ObjectMapper mapper = new ObjectMapper();
@@ -69,5 +70,30 @@ public class RedisConfig {
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
+    }
+
+    @Override
+    public org.springframework.cache.interceptor.CacheErrorHandler errorHandler() {
+        return new org.springframework.cache.interceptor.CacheErrorHandler() {
+            @Override
+            public void handleCacheGetError(RuntimeException exception, org.springframework.cache.Cache cache, Object key) {
+                log.warn("Redis Cache GET failed for key {}: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCachePutError(RuntimeException exception, org.springframework.cache.Cache cache, Object key, Object value) {
+                log.warn("Redis Cache PUT failed for key {}: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheEvictError(RuntimeException exception, org.springframework.cache.Cache cache, Object key) {
+                log.warn("Redis Cache EVICT failed for key {}: {}", key, exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheClearError(RuntimeException exception, org.springframework.cache.Cache cache) {
+                log.warn("Redis Cache CLEAR failed: {}", exception.getMessage());
+            }
+        };
     }
 }

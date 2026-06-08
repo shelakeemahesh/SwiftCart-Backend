@@ -22,6 +22,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -70,37 +71,31 @@ public class OrderController {
     }
 
     @GetMapping("/{orderUuid}")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<Order> getOrderDetail(Principal principal, @PathVariable String orderUuid) {
-        User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
-
-        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized order access");
-        }
-
         return ResponseEntity.ok(order);
     }
 
     @PostMapping("/{orderUuid}/cancel")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<Order> cancelOrder(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
         return ResponseEntity.ok(orderService.cancelOrder(orderUuid, user.getId()));
     }
 
     @PostMapping("/{orderUuid}/return")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<Order> requestReturn(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
         return ResponseEntity.ok(orderService.requestReturn(orderUuid, user.getId()));
     }
 
     @GetMapping(value = "/{orderUuid}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<byte[]> downloadInvoice(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
-
-        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized invoice download");
-        }
 
         // Generating a lightweight valid PDF header structure in memory containing order info
         String invoiceText = "%PDF-1.4\n" +
@@ -124,14 +119,8 @@ public class OrderController {
     }
 
     @GetMapping("/{orderUuid}/tracking")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<List<Map<String, Object>>> getTrackingEvents(Principal principal, @PathVariable String orderUuid) {
-        User user = getUserFromPrincipal(principal);
-        Order order = orderService.getOrderDetail(orderUuid);
-
-        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized tracking access");
-        }
-
         return ResponseEntity.ok(deliveryService.getShipmentTrackingEvents(orderUuid));
     }
 
@@ -170,13 +159,9 @@ public class OrderController {
     }
 
     @GetMapping("/{orderUuid}/track")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<OrderTrackingDTO> getOrderTracking(Principal principal, @PathVariable String orderUuid) {
-        User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
-
-        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized tracking access");
-        }
 
         String status = mapStatus(order.getStatus());
         List<TrackingItemDTO> items = new ArrayList<>();

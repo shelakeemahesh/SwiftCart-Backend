@@ -220,7 +220,7 @@ public class AuthService {
 
     public AuthResponse generateAuthResponse(User user) {
         String username = user.getPhone() != null ? user.getPhone() : user.getEmail();
-        String accessToken = jwtUtil.generateAccessToken(username, user.getRole().name());
+        String accessToken = jwtUtil.generateAccessToken(username, user.getId(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(username);
 
         // Store refresh token with 7-day TTL

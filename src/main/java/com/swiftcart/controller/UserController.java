@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.security.Principal;
 import java.util.List;
@@ -135,6 +136,14 @@ public class UserController {
         addressRepository.save(address);
 
         return ResponseEntity.ok(Map.of("message", "Default address updated"));
+    }
+
+    @GetMapping("/{customerId}/profile")
+    @PreAuthorize("@swiftSecurity.isAdminOrCustomerOwner(#customerId)")
+    public ResponseEntity<User> getCustomerProfile(@PathVariable Long customerId) {
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        return ResponseEntity.ok(customer);
     }
 
     private User getUserFromPrincipal(Principal principal) {

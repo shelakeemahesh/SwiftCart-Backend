@@ -10,7 +10,9 @@ import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.ProductService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.swiftcart.entity.Role;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -87,6 +89,7 @@ public class SellerController {
     }
 
     @PostMapping("/products/{id}/images")
+    @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
     public ResponseEntity<List<String>> uploadImages(
             Principal principal,
             @PathVariable Long id,
@@ -96,7 +99,7 @@ public class SellerController {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!product.getSeller().getId().equals(seller.getId())) {
+        if (!product.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized product modification");
         }
 
@@ -106,12 +109,13 @@ public class SellerController {
     }
 
     @PutMapping("/products/{id}")
+    @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
     public ResponseEntity<Product> editProduct(Principal principal, @PathVariable Long id, @RequestBody Product productRequest) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!existing.getSeller().getId().equals(seller.getId())) {
+        if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized product edit");
         }
 
@@ -119,12 +123,13 @@ public class SellerController {
     }
 
     @DeleteMapping("/products/{id}")
+    @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
     public ResponseEntity<Map<String, String>> deleteProduct(Principal principal, @PathVariable Long id) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!existing.getSeller().getId().equals(seller.getId())) {
+        if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized product removal");
         }
 
@@ -133,12 +138,13 @@ public class SellerController {
     }
 
     @PutMapping("/products/{id}/stock")
+    @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
     public ResponseEntity<Map<String, String>> updateStock(Principal principal, @PathVariable Long id, @RequestParam int qty) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!existing.getSeller().getId().equals(seller.getId())) {
+        if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
             throw new RuntimeException("Unauthorized stock modification");
         }
 
@@ -153,6 +159,7 @@ public class SellerController {
     }
 
     @PutMapping("/orders/{orderUuid}/ship")
+    @PreAuthorize("@swiftSecurity.canSellerManageOrder(#orderUuid)")
     public ResponseEntity<Map<String, String>> shipItem(
             Principal principal,
             @PathVariable String orderUuid,
@@ -164,6 +171,14 @@ public class SellerController {
                 "trackingId", trackingId,
                 "status", "DISPATCHED"
         ));
+    }
+
+    @GetMapping("/{sellerId}/profile")
+    @PreAuthorize("@swiftSecurity.isAdminOrSellerOwner(#sellerId)")
+    public ResponseEntity<User> getSellerProfile(@PathVariable Long sellerId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+        return ResponseEntity.ok(seller);
     }
 
     private User getUserFromPrincipal(Principal principal) {
