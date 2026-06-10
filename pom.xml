@@ -130,6 +130,13 @@
             <version>1.4.6</version>
         </dependency>
 
+        <!-- Twilio SDK for SMS notifications -->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.1.0</version>
+        </dependency>
+
         <!-- Testing Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

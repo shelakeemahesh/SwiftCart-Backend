@@ -1,7 +1,12 @@
 package com.swiftcart.service;
 
+import com.twilio.Twilio;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -14,8 +19,27 @@ public class NotificationService {
     
     private final JavaMailSender mailSender;
 
+    @Value("${twilio.account-sid}")
+    private String twilioAccountSid;
+
+    @Value("${twilio.auth-token}")
+    private String twilioAuthToken;
+
+    @Value("${twilio.phone-number}")
+    private String twilioPhoneNumber;
+
     public NotificationService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @PostConstruct
+    public void initTwilio() {
+        try {
+            Twilio.init(twilioAccountSid, twilioAuthToken);
+            log.info("Twilio initialized successfully with SID: {}", twilioAccountSid);
+        } catch (Exception e) {
+            log.error("Failed to initialize Twilio: {}", e.getMessage());
+        }
     }
 
     @Async
@@ -38,7 +62,26 @@ public class NotificationService {
         log.info("To: {}", phone);
         log.info("Message: Your SwiftCart verification OTP is: {}. Valid for 10 minutes.", otp);
         log.info("-------------------------");
-        // In production: Integrate Twilio/MSG91 client
+        
+        try {
+            String formattedPhone = phone.trim();
+            if (!formattedPhone.startsWith("+")) {
+                if (formattedPhone.length() == 10) {
+                    formattedPhone = "+91" + formattedPhone;
+                } else {
+                    formattedPhone = "+" + formattedPhone;
+                }
+            }
+            
+            Message.creator(
+                new PhoneNumber(formattedPhone),
+                new PhoneNumber(twilioPhoneNumber),
+                "Your SwiftCart verification OTP is: " + otp + ". Valid for 10 minutes."
+            ).create();
+            log.info("Twilio SMS sent successfully to: {}", formattedPhone);
+        } catch (Exception e) {
+            log.error("Failed to send Twilio SMS to {}: {}", phone, e.getMessage());
+        }
     }
 
     @Async
