@@ -113,7 +113,7 @@ management:
 
 app:
   oauth2:
-    authorizedRedirectUris: http://localhost:5175/oauth2/callback
+    authorizedRedirectUris: http://localhost:5173/oauth2/callback
 
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID:YOUR_TWILIO_ACCOUNT_SID}

@@ -17,7 +17,7 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    @Value("${app.frontend.domain:http://localhost:5175}")
+    @Value("${app.frontend.domain:http://localhost:5173}")
     private String frontendDomain;
 
     private final UserRepository userRepository;
