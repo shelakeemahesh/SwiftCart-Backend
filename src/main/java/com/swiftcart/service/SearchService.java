@@ -44,6 +44,23 @@ public class SearchService {
     }
 
     @Transactional
+    public void reindexAll() {
+        if (searchRepository == null) {
+            log.warn("Elasticsearch is not available, skipping reindexing");
+            return;
+        }
+        try {
+            searchRepository.deleteAll();
+            productRepository.findAll().forEach(product -> {
+                indexProduct(product.getId());
+            });
+            log.info("Successfully reindexed all products in Elasticsearch");
+        } catch (Exception e) {
+            log.error("Failed to reindex products: {}", e.getMessage());
+        }
+    }
+
+    @Transactional
     public void indexProduct(Long productId) {
         if (searchRepository == null) {
             log.warn("Elasticsearch is not available, skipping indexing for product ID: {}", productId);
