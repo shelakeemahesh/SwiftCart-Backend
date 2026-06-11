@@ -114,8 +114,10 @@ management:
       enabled: false
 
 app:
+  frontend:
+    domain: ${FRONTEND_URL:http://localhost:5173}
   oauth2:
-    authorizedRedirectUris: http://localhost:5173/oauth2/callback
+    authorizedRedirectUris: ${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback}
 
 twilio:
   account-sid: ${TWILIO_ACCOUNT_SID:YOUR_TWILIO_ACCOUNT_SID}

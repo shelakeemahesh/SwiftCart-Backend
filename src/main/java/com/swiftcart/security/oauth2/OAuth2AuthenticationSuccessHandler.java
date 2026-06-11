@@ -53,7 +53,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             throw new IllegalArgumentException("Sorry! We've got an Unauthorized Redirect URI and can't proceed with the authentication");
         }
 
-        String targetUrl = redirectUri.orElse("http://localhost:5173/oauth2/callback");
+        String targetUrl = redirectUri.orElse(
+                (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
+                ? authorizedRedirectUris.get(0)
+                : "http://localhost:5173/oauth2/callback"
+        );
 
         CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
         AuthResponse authResponse = authService.generateAuthResponse(userPrincipal.getUser());
