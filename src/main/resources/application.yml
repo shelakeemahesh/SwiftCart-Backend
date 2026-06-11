@@ -28,9 +28,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/swiftcart?useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${DATABASE_USER:root}
-    password: ${DATABASE_PASSWORD:}
+    url: ${DATABASE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.ali.tidbcloud.com:4000/test?useSSL=true&allowPublicKeyRetrieval=true}
+    username: ${DATABASE_USER:2Honwd66Qkukh9g.root}
+    password: ${DATABASE_PASSWORD:01YlmXmCjdbhzqqc}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
