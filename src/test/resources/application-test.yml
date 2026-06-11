@@ -6,12 +6,14 @@ spring:
     password:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
+    generate-ddl: true
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
   redis:
     host: localhost
     port: 6379
