@@ -1,7 +1,9 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.OrderStatus;
+import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.Review;
 import com.swiftcart.entity.User;
@@ -45,21 +47,21 @@ public class ReviewController {
     }
 
     @GetMapping("/products/{productId}")
-    public ResponseEntity<Page<Review>> getProductReviews(
+    public ResponseEntity<ApiResponse<Page<Review>>> getProductReviews(
             @PathVariable Long productId,
             @RequestParam(required = false) Integer rating,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
         if (rating != null) {
-            return ResponseEntity.ok(reviewRepository.findByProductIdAndRating(productId, rating, pageRequest));
+            return ResponseEntity.ok(ApiResponse.success(reviewRepository.findByProductIdAndRating(productId, rating, pageRequest)));
         }
-        return ResponseEntity.ok(reviewRepository.findByProductId(productId, pageRequest));
+        return ResponseEntity.ok(ApiResponse.success(reviewRepository.findByProductId(productId, pageRequest)));
     }
 
     @PostMapping("/products/{productId}")
     @Transactional
-    public ResponseEntity<Review> submitReview(
+    public ResponseEntity<ApiResponse<Review>> submitReview(
             Principal principal,
             @PathVariable Long productId,
             @RequestBody Review reviewRequest) {
@@ -102,11 +104,11 @@ public class ReviewController {
         // Async recalculation of average rating via Kafka
         eventProducer.publishRatingRecalculation(productId);
 
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
     @PutMapping("/{reviewId}")
-    public ResponseEntity<Review> editReview(Principal principal, @PathVariable Long reviewId, @RequestBody Review updated) {
+    public ResponseEntity<ApiResponse<Review>> editReview(Principal principal, @PathVariable Long reviewId, @RequestBody Review updated) {
         User user = getUserFromPrincipal(principal);
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
@@ -123,11 +125,11 @@ public class ReviewController {
         // Recalculate avg rating
         eventProducer.publishRatingRecalculation(review.getProduct().getId());
 
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
     @DeleteMapping("/{reviewId}")
-    public ResponseEntity<Map<String, String>> deleteReview(Principal principal, @PathVariable Long reviewId) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteReview(Principal principal, @PathVariable Long reviewId) {
         User user = getUserFromPrincipal(principal);
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
@@ -141,11 +143,11 @@ public class ReviewController {
         // Recalculate avg rating
         eventProducer.publishRatingRecalculation(review.getProduct().getId());
 
-        return ResponseEntity.ok(Map.of("message", "Review deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Review deleted successfully")));
     }
 
     @PostMapping("/{reviewId}/helpful")
-    public ResponseEntity<Map<String, Object>> markHelpful(Principal principal, @PathVariable Long reviewId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markHelpful(Principal principal, @PathVariable Long reviewId) {
         // Increment helpful count
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
@@ -153,7 +155,7 @@ public class ReviewController {
         review.setHelpfulCount(review.getHelpfulCount() + 1);
         reviewRepository.save(review);
 
-        return ResponseEntity.ok(Map.of("helpfulCount", review.getHelpfulCount(), "message", "Marked as helpful"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("helpfulCount", review.getHelpfulCount(), "message", "Marked as helpful")));
     }
 
     private User getUserFromPrincipal(Principal principal) {

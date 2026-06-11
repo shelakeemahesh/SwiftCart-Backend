@@ -1,9 +1,11 @@
 package com.swiftcart.controller;
 
-import com.swiftcart.dto.RazorpayOrderResponse;
-import com.swiftcart.dto.PaymentVerifyRequest;
-import com.swiftcart.dto.PaymentVerifyResponse;
-import com.swiftcart.dto.RefundResponse;
+import com.swiftcart.dto.response.ApiResponse;
+
+import com.swiftcart.dto.response.RazorpayOrderResponse;
+import com.swiftcart.dto.request.PaymentVerifyRequest;
+import com.swiftcart.dto.response.PaymentVerifyResponse;
+import com.swiftcart.dto.response.RefundResponse;
 import com.swiftcart.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -23,34 +25,34 @@ public class PaymentController {
     }
 
     @PostMapping("/razorpay/create-order")
-    public ResponseEntity<RazorpayOrderResponse> createRazorpayOrder(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<RazorpayOrderResponse>> createRazorpayOrder(@RequestBody Map<String, String> body) {
         String orderUuid = body.get("orderUuid");
         if (orderUuid == null) {
             throw new RuntimeException("orderUuid is required in request body");
         }
         RazorpayOrderResponse response = paymentService.createRazorpayOrder(orderUuid);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/razorpay/verify")
-    public ResponseEntity<PaymentVerifyResponse> verifyPayment(@Valid @RequestBody PaymentVerifyRequest request) {
+    public ResponseEntity<ApiResponse<PaymentVerifyResponse>> verifyPayment(@Valid @RequestBody PaymentVerifyRequest request) {
         PaymentVerifyResponse response = paymentService.verifyPayment(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/razorpay/webhook")
-    public ResponseEntity<Void> handleWebhook(
+    public ResponseEntity<ApiResponse<Void>> handleWebhook(
             @RequestBody String payload,
             @RequestHeader("X-Razorpay-Signature") String signature) {
         paymentService.processWebhook(payload, signature);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/razorpay/refund/{orderUuid}")
-    public ResponseEntity<RefundResponse> initiateRefund(
+    public ResponseEntity<ApiResponse<RefundResponse>> initiateRefund(
             @PathVariable String orderUuid,
             @RequestParam BigDecimal refundAmount) {
         RefundResponse response = paymentService.initiateRefund(orderUuid, refundAmount);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

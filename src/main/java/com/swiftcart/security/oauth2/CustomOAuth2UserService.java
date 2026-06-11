@@ -1,6 +1,6 @@
 package com.swiftcart.security.oauth2;
 
-import com.swiftcart.entity.Role;
+import com.swiftcart.enums.Role;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.security.CustomUserPrincipal;

@@ -1,6 +1,9 @@
 package com.swiftcart.controller;
 
-import com.swiftcart.dto.*;
+import com.swiftcart.dto.response.ApiResponse;
+
+import com.swiftcart.dto.request.*;
+import com.swiftcart.dto.response.*;
 import com.swiftcart.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,43 +27,43 @@ public class AuthController {
     }
 
     @PostMapping("/send-otp")
-    public ResponseEntity<Map<String, String>> sendOtp(@RequestParam String phone) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> sendOtp(@RequestParam String phone) {
         authService.sendOtp(phone);
-        return ResponseEntity.ok(Map.of("message", "OTP sent successfully to phone " + phone));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "OTP sent successfully to phone " + phone)));
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOtp(
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request,
             HttpServletResponse response) {
         AuthResponse authResponse = authService.verifyOtp(request.getPhone(), request.getOtp());
         setRefreshTokenCookie(response, authResponse.getRefreshToken());
-        return ResponseEntity.ok(authResponse);
+        return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok(Map.of("message", "User registered successfully. Please verify your phone number via OTP."));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "User registered successfully. Please verify your phone number via OTP.")));
     }
 
     @PostMapping("/register/seller")
-    public ResponseEntity<Map<String, String>> registerSeller(@Valid @RequestBody SellerRegisterRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> registerSeller(@Valid @RequestBody SellerRegisterRequest request) {
         authService.registerSeller(request);
-        return ResponseEntity.ok(Map.of("message", "Seller registered successfully. Please verify your phone number via OTP."));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Seller registered successfully. Please verify your phone number via OTP.")));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response) {
         AuthResponse authResponse = authService.login(request);
         setRefreshTokenCookie(response, authResponse.getRefreshToken());
-        return ResponseEntity.ok(authResponse);
+        return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponse> refreshToken(
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             HttpServletRequest request,
             HttpServletResponse response,
             @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie) {
@@ -77,28 +80,28 @@ public class AuthController {
 
         AuthResponse authResponse = authService.refreshToken(token);
         setRefreshTokenCookie(response, authResponse.getRefreshToken());
-        return ResponseEntity.ok(authResponse);
+        return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(
+    public ResponseEntity<ApiResponse<Map<String, String>>> logout(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
         authService.logout(refreshToken);
         clearRefreshTokenCookie(response);
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Logged out successfully")));
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Map<String, String>> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> forgotPassword(@RequestParam String email) {
         authService.forgotPassword(email);
-        return ResponseEntity.ok(Map.of("message", "Password reset link sent to your email"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Password reset link sent to your email")));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
-        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Password reset successfully")));
     }
 
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
@@ -122,11 +125,11 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser(java.security.Principal principal) {
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(java.security.Principal principal) {
         if (principal == null) {
             throw new RuntimeException("Unauthorized");
         }
         UserResponse userResponse = authService.getCurrentUser(principal.getName());
-        return ResponseEntity.ok(userResponse);
+        return ResponseEntity.ok(ApiResponse.success(userResponse));
     }
 }

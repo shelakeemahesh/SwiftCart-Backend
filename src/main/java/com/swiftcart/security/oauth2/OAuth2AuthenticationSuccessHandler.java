@@ -1,6 +1,6 @@
 package com.swiftcart.security.oauth2;
 
-import com.swiftcart.dto.AuthResponse;
+import com.swiftcart.dto.response.AuthResponse;
 import com.swiftcart.security.CustomUserPrincipal;
 import com.swiftcart.service.AuthService;
 import jakarta.servlet.ServletException;

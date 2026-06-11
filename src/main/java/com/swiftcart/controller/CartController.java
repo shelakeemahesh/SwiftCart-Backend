@@ -1,6 +1,8 @@
 package com.swiftcart.controller;
 
-import com.swiftcart.dto.CartItemRequest;
+import com.swiftcart.dto.response.ApiResponse;
+
+import com.swiftcart.dto.request.CartItemRequest;
 import com.swiftcart.entity.CartItem;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.UserRepository;
@@ -26,44 +28,44 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CartItem>> getCart(Principal principal) {
+    public ResponseEntity<ApiResponse<List<CartItem>>> getCart(Principal principal) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(cartService.getCartItems(user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(cartService.getCartItems(user.getId())));
     }
 
     @PostMapping("/items")
-    public ResponseEntity<CartItem> addToCart(Principal principal, @Valid @RequestBody CartItemRequest request) {
+    public ResponseEntity<ApiResponse<CartItem>> addToCart(Principal principal, @Valid @RequestBody CartItemRequest request) {
         User user = getUserFromPrincipal(principal);
         CartItem item = cartService.addToCart(user.getId(), request.getProductId(), request.getVariantId(), request.getQuantity());
-        return ResponseEntity.ok(item);
+        return ResponseEntity.ok(ApiResponse.success(item));
     }
 
     @PutMapping("/items/{id}")
-    public ResponseEntity<CartItem> updateQuantity(Principal principal, @PathVariable Long id, @RequestParam int quantity) {
+    public ResponseEntity<ApiResponse<CartItem>> updateQuantity(Principal principal, @PathVariable Long id, @RequestParam int quantity) {
         User user = getUserFromPrincipal(principal);
         CartItem item = cartService.updateQuantity(user.getId(), id, quantity);
-        return ResponseEntity.ok(item);
+        return ResponseEntity.ok(ApiResponse.success(item));
     }
 
     @DeleteMapping("/items/{id}")
-    public ResponseEntity<Map<String, String>> removeItem(Principal principal, @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> removeItem(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         cartService.removeItem(user.getId(), id);
-        return ResponseEntity.ok(Map.of("message", "Item removed from cart"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Item removed from cart")));
     }
 
     @DeleteMapping
-    public ResponseEntity<Map<String, String>> clearCart(Principal principal) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> clearCart(Principal principal) {
         User user = getUserFromPrincipal(principal);
         cartService.clearCart(user.getId());
-        return ResponseEntity.ok(Map.of("message", "Cart cleared successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Cart cleared successfully")));
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<Map<String, String>> validateCart(Principal principal) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> validateCart(Principal principal) {
         User user = getUserFromPrincipal(principal);
         cartService.validateCart(user.getId());
-        return ResponseEntity.ok(Map.of("message", "Cart validated. Stock is available."));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Cart validated. Stock is available.")));
     }
 
     private User getUserFromPrincipal(Principal principal) {

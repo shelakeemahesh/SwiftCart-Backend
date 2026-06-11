@@ -11,12 +11,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
@@ -46,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String roleName = jwtUtil.extractRole(jwt);
 
             if (username != null && userId != null && roleName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                com.swiftcart.entity.Role role = com.swiftcart.entity.Role.valueOf(roleName);
+                com.swiftcart.enums.Role role = com.swiftcart.enums.Role.valueOf(roleName);
                 com.swiftcart.entity.User user = com.swiftcart.entity.User.builder()
                         .phone(username.contains("@") ? null : username)
                         .email(username.contains("@") ? username : username + "@swiftcart.com")
@@ -68,7 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Log exception or handle it
+            log.warn("JWT Validation failed: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

@@ -1,5 +1,7 @@
 package com.swiftcart.entity;
 
+import com.swiftcart.enums.*;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

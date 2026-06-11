@@ -1,9 +1,9 @@
 package com.swiftcart;
 
-import com.swiftcart.dto.PaymentVerifyRequest;
-import com.swiftcart.dto.PaymentVerifyResponse;
+import com.swiftcart.dto.request.PaymentVerifyRequest;
+import com.swiftcart.dto.response.PaymentVerifyResponse;
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.PaymentStatus;
+import com.swiftcart.enums.PaymentStatus;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.UserRepository;

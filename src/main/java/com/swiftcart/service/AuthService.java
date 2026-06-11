@@ -1,7 +1,8 @@
 package com.swiftcart.service;
 
-import com.swiftcart.dto.*;
-import com.swiftcart.entity.Role;
+import com.swiftcart.dto.request.*;
+import com.swiftcart.dto.response.*;
+import com.swiftcart.enums.Role;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.util.JwtUtil;

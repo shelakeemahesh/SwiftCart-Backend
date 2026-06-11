@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.ProductDocument;
 import com.swiftcart.service.SearchService;
 import org.springframework.data.domain.Page;
@@ -19,7 +21,7 @@ public class SearchController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProductDocument>> fullTextSearch(
+    public ResponseEntity<ApiResponse<Page<ProductDocument>>> fullTextSearch(
             @RequestParam("q") String query,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String categoryPath,
@@ -30,23 +32,23 @@ public class SearchController {
             @RequestParam(required = false) Boolean inStock,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(searchService.searchProducts(
-                query, brand, categoryPath, minPrice, maxPrice, rating, discount, inStock, page, size));
+        return ResponseEntity.ok(ApiResponse.success(searchService.searchProducts(
+                query, brand, categoryPath, minPrice, maxPrice, rating, discount, inStock, page, size)));
     }
 
     @GetMapping("/suggest")
-    public ResponseEntity<List<String>> getAutocompleteSuggestions(@RequestParam("q") String prefix) {
-        return ResponseEntity.ok(searchService.getAutocompleteSuggestions(prefix));
+    public ResponseEntity<ApiResponse<List<String>>> getAutocompleteSuggestions(@RequestParam("q") String prefix) {
+        return ResponseEntity.ok(ApiResponse.success(searchService.getAutocompleteSuggestions(prefix)));
     }
 
     @GetMapping("/trending")
-    public ResponseEntity<List<String>> getTrendingSearchKeywords() {
-        return ResponseEntity.ok(searchService.getTrendingSearchKeywords());
+    public ResponseEntity<ApiResponse<List<String>>> getTrendingSearchKeywords() {
+        return ResponseEntity.ok(ApiResponse.success(searchService.getTrendingSearchKeywords()));
     }
 
     @PostMapping("/reindex")
-    public ResponseEntity<String> triggerReindex() {
+    public ResponseEntity<ApiResponse<String>> triggerReindex() {
         searchService.reindexAll();
-        return ResponseEntity.ok("Reindexing triggered successfully");
+        return ResponseEntity.ok(ApiResponse.success("Reindexing triggered successfully"));
     }
 }

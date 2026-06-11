@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Coupon;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.CouponRepository;
@@ -29,7 +31,7 @@ public class CouponController {
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validateCoupon(Principal principal, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> validateCoupon(Principal principal, @RequestBody Map<String, Object> body) {
         User user = getUserFromPrincipal(principal);
         String code = (String) body.get("code");
         BigDecimal orderValue = new BigDecimal(body.get("orderValue").toString());
@@ -37,18 +39,18 @@ public class CouponController {
         Coupon coupon = pricingService.validateCoupon(code, orderValue, user.getId());
         BigDecimal discount = pricingService.calculateCouponDiscount(coupon, orderValue);
 
-        return ResponseEntity.ok(Map.of(
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "valid", true,
                 "code", coupon.getCode(),
                 "discount", discount,
                 "type", coupon.getType().name()
-        ));
+        )));
     }
 
     @GetMapping("/my-coupons")
-    public ResponseEntity<List<Coupon>> getMyCoupons(Principal principal) {
+    public ResponseEntity<ApiResponse<List<Coupon>>> getMyCoupons(Principal principal) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(couponRepository.findAvailableCoupons(user.getId(), LocalDateTime.now()));
+        return ResponseEntity.ok(ApiResponse.success(couponRepository.findAvailableCoupons(user.getId(), LocalDateTime.now())));
     }
 
     private User getUserFromPrincipal(Principal principal) {

@@ -1,5 +1,7 @@
 package com.swiftcart.entity;
 
+import com.swiftcart.enums.*;
+
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;

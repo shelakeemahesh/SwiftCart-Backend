@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.User;
 import com.swiftcart.entity.WishlistItem;
@@ -31,13 +33,13 @@ public class WishlistController {
     }
 
     @GetMapping
-    public ResponseEntity<List<WishlistItem>> getWishlist(Principal principal) {
+    public ResponseEntity<ApiResponse<List<WishlistItem>>> getWishlist(Principal principal) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(wishlistItemRepository.findByUserId(user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(wishlistItemRepository.findByUserId(user.getId())));
     }
 
     @PostMapping("/{productId}")
-    public ResponseEntity<WishlistItem> addToWishlist(Principal principal, @PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<WishlistItem>> addToWishlist(Principal principal, @PathVariable Long productId) {
         User user = getUserFromPrincipal(principal);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -52,12 +54,12 @@ public class WishlistController {
                 .product(product)
                 .build();
 
-        return ResponseEntity.ok(wishlistItemRepository.save(item));
+        return ResponseEntity.ok(ApiResponse.success(wishlistItemRepository.save(item)));
     }
 
     @DeleteMapping("/{productId}")
     @Transactional
-    public ResponseEntity<Map<String, String>> removeFromWishlist(Principal principal, @PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> removeFromWishlist(Principal principal, @PathVariable Long productId) {
         User user = getUserFromPrincipal(principal);
 
         if (!wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId)) {
@@ -65,14 +67,14 @@ public class WishlistController {
         }
 
         wishlistItemRepository.deleteByUserIdAndProductId(user.getId(), productId);
-        return ResponseEntity.ok(Map.of("message", "Product removed from wishlist"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Product removed from wishlist")));
     }
 
     @GetMapping("/check/{productId}")
-    public ResponseEntity<Map<String, Boolean>> isInWishlist(Principal principal, @PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> isInWishlist(Principal principal, @PathVariable Long productId) {
         User user = getUserFromPrincipal(principal);
         boolean exists = wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId);
-        return ResponseEntity.ok(Map.of("inWishlist", exists));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("inWishlist", exists)));
     }
 
     private User getUserFromPrincipal(Principal principal) {

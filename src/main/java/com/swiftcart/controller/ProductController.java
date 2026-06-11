@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.FlashSale;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.ProductDocument;
@@ -39,7 +41,7 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<Product>> listProducts(
+    public ResponseEntity<ApiResponse<Page<Product>>> listProducts(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) Double minPrice,
@@ -104,16 +106,16 @@ public class ProductController {
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         }, pageable);
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<Product> getProductBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(productService.getProductBySlug(slug));
+    public ResponseEntity<ApiResponse<Product>> getProductBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.success(productService.getProductBySlug(slug)));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<Page<ProductDocument>> searchProducts(
+    public ResponseEntity<ApiResponse<Page<ProductDocument>>> searchProducts(
             @RequestParam("q") String query,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String categoryPath,
@@ -124,45 +126,45 @@ public class ProductController {
             @RequestParam(required = false) Boolean inStock,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(searchService.searchProducts(
-                query, brand, categoryPath, minPrice, maxPrice, rating, discount, inStock, page, size));
+        return ResponseEntity.ok(ApiResponse.success(searchService.searchProducts(
+                query, brand, categoryPath, minPrice, maxPrice, rating, discount, inStock, page, size)));
     }
 
     @GetMapping("/trending")
-    public ResponseEntity<List<Product>> getTrendingProducts() {
-        return ResponseEntity.ok(productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc());
+    public ResponseEntity<ApiResponse<List<Product>>> getTrendingProducts() {
+        return ResponseEntity.ok(ApiResponse.success(productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc()));
     }
 
     @GetMapping("/new-arrivals")
-    public ResponseEntity<List<Product>> getNewArrivals() {
-        return ResponseEntity.ok(productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc());
+    public ResponseEntity<ApiResponse<List<Product>>> getNewArrivals() {
+        return ResponseEntity.ok(ApiResponse.success(productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc()));
     }
 
     @GetMapping("/deals")
-    public ResponseEntity<List<Product>> getFlashDeals() {
+    public ResponseEntity<ApiResponse<List<Product>>> getFlashDeals() {
         List<FlashSale> activeSales = flashSaleRepository.findActiveFlashSales(LocalDateTime.now());
         List<Product> products = activeSales.stream()
                 .map(FlashSale::getProduct)
                 .filter(Product::isActive)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @GetMapping("/{id}/related")
-    public ResponseEntity<List<Product>> getRelatedProducts(@PathVariable Long id, @RequestParam(defaultValue = "5") int limit) {
+    public ResponseEntity<ApiResponse<List<Product>>> getRelatedProducts(@PathVariable Long id, @RequestParam(defaultValue = "5") int limit) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        return ResponseEntity.ok(productRepository.findRelatedProducts(
-                product.getCategory().getId(), id, PageRequest.of(0, limit)));
+        return ResponseEntity.ok(ApiResponse.success(productRepository.findRelatedProducts(
+                product.getCategory().getId(), id, PageRequest.of(0, limit))));
     }
 
     @GetMapping("/{id}/frequently-bought")
-    public ResponseEntity<List<Product>> getFrequentlyBoughtTogether(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<List<Product>>> getFrequentlyBoughtTogether(@PathVariable Long id) {
         // Simulating frequently bought together products
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<Product> list = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, 3));
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 }

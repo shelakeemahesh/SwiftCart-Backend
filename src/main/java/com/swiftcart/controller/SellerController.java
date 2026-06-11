@@ -1,7 +1,9 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.OrderStatus;
+import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.OrderRepository;
@@ -12,7 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.swiftcart.entity.Role;
+import com.swiftcart.enums.Role;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -47,7 +49,7 @@ public class SellerController {
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<Map<String, Object>> getDashboard(Principal principal) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboard(Principal principal) {
         User seller = getUserFromPrincipal(principal);
         List<Product> products = productRepository.findBySellerId(seller.getId(), PageRequest.of(0, 100));
 
@@ -72,25 +74,25 @@ public class SellerController {
         data.put("lowStockAlerts", lowStockProducts);
         data.put("recentOrdersCount", recentOrders.size());
 
-        return ResponseEntity.ok(data);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 
     @GetMapping("/products")
-    public ResponseEntity<List<Product>> getMyProducts(Principal principal) {
+    public ResponseEntity<ApiResponse<List<Product>>> getMyProducts(Principal principal) {
         User seller = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(productRepository.findBySellerId(seller.getId(), PageRequest.of(0, 100)));
+        return ResponseEntity.ok(ApiResponse.success(productRepository.findBySellerId(seller.getId(), PageRequest.of(0, 100))));
     }
 
     @PostMapping("/products")
-    public ResponseEntity<Product> addProduct(Principal principal, @RequestBody Product product) {
+    public ResponseEntity<ApiResponse<Product>> addProduct(Principal principal, @RequestBody Product product) {
         User seller = getUserFromPrincipal(principal);
         product.setSeller(seller);
-        return ResponseEntity.ok(productService.saveProduct(product));
+        return ResponseEntity.ok(ApiResponse.success(productService.saveProduct(product)));
     }
 
     @PostMapping("/products/{id}/images")
     @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
-    public ResponseEntity<List<String>> uploadImages(
+    public ResponseEntity<ApiResponse<List<String>>> uploadImages(
             Principal principal,
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) throws IOException {
@@ -105,12 +107,12 @@ public class SellerController {
 
         List<String> urls = productService.uploadProductImages(
                 id, file.getBytes(), file.getOriginalFilename(), file.getContentType());
-        return ResponseEntity.ok(urls);
+        return ResponseEntity.ok(ApiResponse.success(urls));
     }
 
     @PutMapping("/products/{id}")
     @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
-    public ResponseEntity<Product> editProduct(Principal principal, @PathVariable Long id, @RequestBody Product productRequest) {
+    public ResponseEntity<ApiResponse<Product>> editProduct(Principal principal, @PathVariable Long id, @RequestBody Product productRequest) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -119,12 +121,12 @@ public class SellerController {
             throw new RuntimeException("Unauthorized product edit");
         }
 
-        return ResponseEntity.ok(productService.updateProduct(existing.getSlug(), productRequest));
+        return ResponseEntity.ok(ApiResponse.success(productService.updateProduct(existing.getSlug(), productRequest)));
     }
 
     @DeleteMapping("/products/{id}")
     @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
-    public ResponseEntity<Map<String, String>> deleteProduct(Principal principal, @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteProduct(Principal principal, @PathVariable Long id) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -134,12 +136,12 @@ public class SellerController {
         }
 
         productService.deleteProduct(id);
-        return ResponseEntity.ok(Map.of("message", "Product deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Product deleted successfully")));
     }
 
     @PutMapping("/products/{id}/stock")
     @PreAuthorize("@swiftSecurity.canManageProduct(#id)")
-    public ResponseEntity<Map<String, String>> updateStock(Principal principal, @PathVariable Long id, @RequestParam int qty) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> updateStock(Principal principal, @PathVariable Long id, @RequestParam int qty) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -149,36 +151,36 @@ public class SellerController {
         }
 
         productService.updateStock(id, qty);
-        return ResponseEntity.ok(Map.of("message", "Stock updated successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Stock updated successfully")));
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<Order>> getSellerOrders(Principal principal) {
+    public ResponseEntity<ApiResponse<List<Order>>> getSellerOrders(Principal principal) {
         User seller = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(orderRepository.findBySellerId(seller.getId()));
+        return ResponseEntity.ok(ApiResponse.success(orderRepository.findBySellerId(seller.getId())));
     }
 
     @PutMapping("/orders/{orderUuid}/ship")
     @PreAuthorize("@swiftSecurity.canSellerManageOrder(#orderUuid)")
-    public ResponseEntity<Map<String, String>> shipItem(
+    public ResponseEntity<ApiResponse<Map<String, String>>> shipItem(
             Principal principal,
             @PathVariable String orderUuid,
             @RequestParam String trackingId) {
         // Update order status to DISPATCHED or SHIPPED
         orderService.updateOrderStatusBySellerOrAdmin(orderUuid, OrderStatus.DISPATCHED);
-        return ResponseEntity.ok(Map.of(
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "message", "Order marked as shipped",
                 "trackingId", trackingId,
                 "status", "DISPATCHED"
-        ));
+        )));
     }
 
     @GetMapping("/{sellerId}/profile")
     @PreAuthorize("@swiftSecurity.isAdminOrSellerOwner(#sellerId)")
-    public ResponseEntity<User> getSellerProfile(@PathVariable Long sellerId) {
+    public ResponseEntity<ApiResponse<User>> getSellerProfile(@PathVariable Long sellerId) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new RuntimeException("Seller not found"));
-        return ResponseEntity.ok(seller);
+        return ResponseEntity.ok(ApiResponse.success(seller));
     }
 
     private User getUserFromPrincipal(Principal principal) {

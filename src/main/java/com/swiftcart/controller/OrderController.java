@@ -1,16 +1,18 @@
 package com.swiftcart.controller;
 
-import com.swiftcart.dto.OrderRequest;
-import com.swiftcart.dto.ActiveOrderDTO;
-import com.swiftcart.dto.OrderTrackingDTO;
-import com.swiftcart.dto.OrderTrackingDTO.TimelineStepDTO;
-import com.swiftcart.dto.OrderTrackingDTO.TrackingItemDTO;
+import com.swiftcart.dto.response.ApiResponse;
+
+import com.swiftcart.dto.request.OrderRequest;
+import com.swiftcart.dto.response.ActiveOrderDTO;
+import com.swiftcart.dto.response.OrderTrackingDTO;
+import com.swiftcart.dto.response.OrderTrackingDTO.TimelineStepDTO;
+import com.swiftcart.dto.response.OrderTrackingDTO.TrackingItemDTO;
 import com.swiftcart.entity.Order;
 import com.swiftcart.entity.OrderItem;
 import com.swiftcart.entity.Address;
-import com.swiftcart.entity.OrderStatus;
+import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.User;
-import com.swiftcart.entity.Role;
+import com.swiftcart.enums.Role;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.DeliveryService;
 import com.swiftcart.service.OrderService;
@@ -47,7 +49,7 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<Order> placeOrder(Principal principal, @Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<ApiResponse<Order>> placeOrder(Principal principal, @Valid @RequestBody OrderRequest request) {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.placeOrder(
                 user.getId(),
@@ -56,39 +58,39 @@ public class OrderController {
                 request.getPaymentMethod(),
                 request.getNotes()
         );
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(ApiResponse.success(order));
     }
 
     @GetMapping
-    public ResponseEntity<Page<Order>> listOrders(
+    public ResponseEntity<ApiResponse<Page<Order>>> listOrders(
             Principal principal,
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         User user = getUserFromPrincipal(principal);
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
-        return ResponseEntity.ok(orderService.listUserOrders(user.getId(), status, pageRequest));
+        return ResponseEntity.ok(ApiResponse.success(orderService.listUserOrders(user.getId(), status, pageRequest)));
     }
 
     @GetMapping("/{orderUuid}")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
-    public ResponseEntity<Order> getOrderDetail(Principal principal, @PathVariable String orderUuid) {
+    public ResponseEntity<ApiResponse<Order>> getOrderDetail(Principal principal, @PathVariable String orderUuid) {
         Order order = orderService.getOrderDetail(orderUuid);
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(ApiResponse.success(order));
     }
 
     @PostMapping("/{orderUuid}/cancel")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
-    public ResponseEntity<Order> cancelOrder(Principal principal, @PathVariable String orderUuid) {
+    public ResponseEntity<ApiResponse<Order>> cancelOrder(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(orderService.cancelOrder(orderUuid, user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(orderService.cancelOrder(orderUuid, user.getId())));
     }
 
     @PostMapping("/{orderUuid}/return")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
-    public ResponseEntity<Order> requestReturn(Principal principal, @PathVariable String orderUuid) {
+    public ResponseEntity<ApiResponse<Order>> requestReturn(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(orderService.requestReturn(orderUuid, user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(orderService.requestReturn(orderUuid, user.getId())));
     }
 
     @GetMapping(value = "/{orderUuid}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -120,12 +122,12 @@ public class OrderController {
 
     @GetMapping("/{orderUuid}/tracking")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
-    public ResponseEntity<List<Map<String, Object>>> getTrackingEvents(Principal principal, @PathVariable String orderUuid) {
-        return ResponseEntity.ok(deliveryService.getShipmentTrackingEvents(orderUuid));
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTrackingEvents(Principal principal, @PathVariable String orderUuid) {
+        return ResponseEntity.ok(ApiResponse.success(deliveryService.getShipmentTrackingEvents(orderUuid)));
     }
 
     @GetMapping("/active")
-    public ResponseEntity<ActiveOrderDTO> getActiveOrder(Principal principal) {
+    public ResponseEntity<ApiResponse<ActiveOrderDTO>> getActiveOrder(Principal principal) {
         User user = getUserFromPrincipal(principal);
         return orderService.getLatestActiveOrder(user.getId())
                 .map(order -> {
@@ -146,21 +148,21 @@ public class OrderController {
                     }
                     String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
                     int totalItems = order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0;
-                    return ResponseEntity.ok(new ActiveOrderDTO(
+                    return ResponseEntity.ok(ApiResponse.success(new ActiveOrderDTO(
                             order.getOrderUuid(),
                             status,
                             productName,
                             productThumbnailUrl,
                             estimatedDelivery,
                             totalItems
-                    ));
+                    )));
                 })
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{orderUuid}/track")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
-    public ResponseEntity<OrderTrackingDTO> getOrderTracking(Principal principal, @PathVariable String orderUuid) {
+    public ResponseEntity<ApiResponse<OrderTrackingDTO>> getOrderTracking(Principal principal, @PathVariable String orderUuid) {
         Order order = orderService.getOrderDetail(orderUuid);
 
         String status = mapStatus(order.getStatus());
@@ -202,14 +204,14 @@ public class OrderController {
         String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
         List<TimelineStepDTO> timeline = buildTimeline(order, status);
 
-        return ResponseEntity.ok(new OrderTrackingDTO(
+        return ResponseEntity.ok(ApiResponse.success(new OrderTrackingDTO(
                 order.getOrderUuid(),
                 status,
                 items,
                 deliveryAddress,
                 timeline,
                 estimatedDelivery
-        ));
+        )));
     }
 
     private List<TimelineStepDTO> buildTimeline(Order order, String currentMappedStatus) {

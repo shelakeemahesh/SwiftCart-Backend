@@ -2,7 +2,7 @@ package com.swiftcart.kafka.consumer;
 
 import com.swiftcart.config.KafkaConfig;
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.OrderStatus;
+import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.Review;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.ReviewRepository;

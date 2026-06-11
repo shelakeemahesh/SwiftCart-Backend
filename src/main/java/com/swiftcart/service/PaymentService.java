@@ -2,15 +2,15 @@ package com.swiftcart.service;
 
 import com.razorpay.RazorpayClient;
 import com.razorpay.Refund;
-import com.swiftcart.dto.RazorpayOrderResponse;
-import com.swiftcart.dto.PaymentVerifyRequest;
-import com.swiftcart.dto.PaymentVerifyResponse;
-import com.swiftcart.dto.RefundResponse;
+import com.swiftcart.dto.response.RazorpayOrderResponse;
+import com.swiftcart.dto.request.PaymentVerifyRequest;
+import com.swiftcart.dto.response.PaymentVerifyResponse;
+import com.swiftcart.dto.response.RefundResponse;
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.OrderStatus;
-import com.swiftcart.entity.PaymentStatus;
+import com.swiftcart.enums.OrderStatus;
+import com.swiftcart.enums.PaymentStatus;
 import com.swiftcart.entity.RazorpayPayment;
-import com.swiftcart.entity.RazorpayPaymentStatus;
+import com.swiftcart.enums.RazorpayPaymentStatus;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.RazorpayPaymentRepository;
 import com.swiftcart.kafka.producer.OrderEventProducer;
@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
@@ -36,6 +38,7 @@ public class PaymentService {
     private final RazorpayPaymentRepository razorpayPaymentRepository;
     private final RazorpayClient razorpayClient;
     private final OrderEventProducer orderEventProducer;
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${razorpay.key.id}")
     private String razorpayKeyId;
@@ -46,7 +49,7 @@ public class PaymentService {
     @Value("${razorpay.webhook.secret}")
     private String razorpayWebhookSecret;
 
-    public PaymentService(
+    public PaymentService(StringRedisTemplate redisTemplate, 
             OrderRepository orderRepository,
             RazorpayPaymentRepository razorpayPaymentRepository,
             RazorpayClient razorpayClient,
@@ -55,6 +58,7 @@ public class PaymentService {
         this.razorpayPaymentRepository = razorpayPaymentRepository;
         this.razorpayClient = razorpayClient;
         this.orderEventProducer = orderEventProducer;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -156,6 +160,14 @@ public class PaymentService {
         if (!isValid) {
             log.warn("Invalid Razorpay webhook signature");
             throw new RuntimeException("Invalid webhook signature, HMAC verification failed");
+        }
+
+        // Redis Idempotency Check using webhook signature as unique key
+        String idempotencyKey = "webhook_processed:" + signatureHeader;
+        Boolean isNew = redisTemplate.opsForValue().setIfAbsent(idempotencyKey, "true", Duration.ofHours(24));
+        if (Boolean.FALSE.equals(isNew)) {
+            log.info("Webhook already processed (Idempotency key: {})", signatureHeader);
+            return;
         }
 
         JSONObject event = new JSONObject(payload);

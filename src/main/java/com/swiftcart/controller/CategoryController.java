@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Category;
 import com.swiftcart.entity.Product;
 import com.swiftcart.repository.ProductRepository;
@@ -26,17 +28,17 @@ public class CategoryController {
 
     @GetMapping
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public ResponseEntity<List<Category>> getRootCategories() {
-        return ResponseEntity.ok(categoryService.getRootCategories());
+    public ResponseEntity<ApiResponse<List<Category>>> getRootCategories() {
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getRootCategories()));
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<Category> getCategoryBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(categoryService.getCategoryBySlug(slug));
+    public ResponseEntity<ApiResponse<Category>> getCategoryBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getCategoryBySlug(slug)));
     }
 
     @GetMapping("/{slug}/products")
-    public ResponseEntity<Page<Product>> getCategoryProducts(
+    public ResponseEntity<ApiResponse<Page<Product>>> getCategoryProducts(
             @PathVariable String slug,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -52,6 +54,6 @@ public class CategoryController {
                 cb.equal(root.get("isActive"), true)
             ), pageable);
             
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 }

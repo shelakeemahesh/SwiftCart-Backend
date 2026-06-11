@@ -1,5 +1,7 @@
 package com.swiftcart.controller;
 
+import com.swiftcart.dto.response.ApiResponse;
+
 import com.swiftcart.entity.Address;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.AddressRepository;
@@ -29,22 +31,22 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> getProfile(Principal principal) {
+    public ResponseEntity<ApiResponse<User>> getProfile(Principal principal) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(ApiResponse.success(user));
     }
 
     @PutMapping("/me")
-    public ResponseEntity<User> updateProfile(Principal principal, @RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<User>> updateProfile(Principal principal, @RequestBody Map<String, String> body) {
         User user = getUserFromPrincipal(principal);
         if (body.containsKey("name")) user.setName(body.get("name"));
         if (body.containsKey("email")) user.setEmail(body.get("email"));
         if (body.containsKey("profileImageUrl")) user.setProfileImageUrl(body.get("profileImageUrl"));
-        return ResponseEntity.ok(userRepository.save(user));
+        return ResponseEntity.ok(ApiResponse.success(userRepository.save(user)));
     }
 
     @PutMapping("/me/password")
-    public ResponseEntity<Map<String, String>> changePassword(Principal principal, @RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> changePassword(Principal principal, @RequestBody Map<String, String> body) {
         User user = getUserFromPrincipal(principal);
         String oldPassword = body.get("oldPassword");
         String newPassword = body.get("newPassword");
@@ -55,18 +57,18 @@ public class UserController {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Password changed successfully")));
     }
 
     @GetMapping("/me/addresses")
-    public ResponseEntity<List<Address>> listAddresses(Principal principal) {
+    public ResponseEntity<ApiResponse<List<Address>>> listAddresses(Principal principal) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(addressRepository.findByUserIdOrderByIsDefaultDescCreatedAtDesc(user.getId()));
+        return ResponseEntity.ok(ApiResponse.success(addressRepository.findByUserIdOrderByIsDefaultDescCreatedAtDesc(user.getId())));
     }
 
     @PostMapping("/me/addresses")
     @Transactional
-    public ResponseEntity<Address> addAddress(Principal principal, @RequestBody Address address) {
+    public ResponseEntity<ApiResponse<Address>> addAddress(Principal principal, @RequestBody Address address) {
         User user = getUserFromPrincipal(principal);
         address.setUser(user);
 
@@ -75,12 +77,12 @@ public class UserController {
         }
 
         Address saved = addressRepository.save(address);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
     @PutMapping("/me/addresses/{id}")
     @Transactional
-    public ResponseEntity<Address> updateAddress(Principal principal, @PathVariable Long id, @RequestBody Address updatedAddress) {
+    public ResponseEntity<ApiResponse<Address>> updateAddress(Principal principal, @PathVariable Long id, @RequestBody Address updatedAddress) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
@@ -103,11 +105,11 @@ public class UserController {
             address.setDefault(true);
         }
 
-        return ResponseEntity.ok(addressRepository.save(address));
+        return ResponseEntity.ok(ApiResponse.success(addressRepository.save(address)));
     }
 
     @DeleteMapping("/me/addresses/{id}")
-    public ResponseEntity<Map<String, String>> deleteAddress(Principal principal, @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
@@ -117,12 +119,12 @@ public class UserController {
         }
 
         addressRepository.delete(address);
-        return ResponseEntity.ok(Map.of("message", "Address deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Address deleted successfully")));
     }
 
     @PutMapping("/me/addresses/{id}/default")
     @Transactional
-    public ResponseEntity<Map<String, String>> setDefaultAddress(Principal principal, @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> setDefaultAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Address not found"));
@@ -135,15 +137,15 @@ public class UserController {
         address.setDefault(true);
         addressRepository.save(address);
 
-        return ResponseEntity.ok(Map.of("message", "Default address updated"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Default address updated")));
     }
 
     @GetMapping("/{customerId}/profile")
     @PreAuthorize("@swiftSecurity.isAdminOrCustomerOwner(#customerId)")
-    public ResponseEntity<User> getCustomerProfile(@PathVariable Long customerId) {
+    public ResponseEntity<ApiResponse<User>> getCustomerProfile(@PathVariable Long customerId) {
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
-        return ResponseEntity.ok(customer);
+        return ResponseEntity.ok(ApiResponse.success(customer));
     }
 
     private User getUserFromPrincipal(Principal principal) {

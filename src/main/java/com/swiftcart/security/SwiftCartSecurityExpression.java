@@ -3,7 +3,7 @@ package com.swiftcart.security;
 import com.swiftcart.entity.OrderItem;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.Role;
+import com.swiftcart.enums.Role;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.OrderRepository;

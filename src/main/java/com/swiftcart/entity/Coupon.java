@@ -1,5 +1,7 @@
 package com.swiftcart.entity;
 
+import com.swiftcart.enums.*;
+
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

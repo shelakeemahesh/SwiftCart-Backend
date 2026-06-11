@@ -1,7 +1,7 @@
 package com.swiftcart.service;
 
 import com.swiftcart.entity.Coupon;
-import com.swiftcart.entity.CouponType;
+import com.swiftcart.enums.CouponType;
 import com.swiftcart.entity.FlashSale;
 import com.swiftcart.entity.Product;
 import com.swiftcart.repository.CouponRepository;

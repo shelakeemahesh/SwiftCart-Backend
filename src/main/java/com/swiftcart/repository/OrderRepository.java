@@ -1,7 +1,7 @@
 package com.swiftcart.repository;
 
 import com.swiftcart.entity.Order;
-import com.swiftcart.entity.OrderStatus;
+import com.swiftcart.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

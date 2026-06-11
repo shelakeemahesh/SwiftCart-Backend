@@ -2,6 +2,7 @@ package com.swiftcart.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swiftcart.entity.*;
+import com.swiftcart.enums.*;
 import com.swiftcart.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
