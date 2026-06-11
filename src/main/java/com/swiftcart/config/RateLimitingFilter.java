@@ -29,7 +29,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         boolean isAuthEndpoint = path.startsWith("/api/v1/auth");
-        int limit = isAuthEndpoint ? 30 : 100;
+        int limit = isAuthEndpoint ? 100 : 1000;
         String type = isAuthEndpoint ? "auth" : "public";
 
         long currentMinute = System.currentTimeMillis() / 60000;
