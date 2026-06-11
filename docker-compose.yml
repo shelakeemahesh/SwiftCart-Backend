@@ -54,6 +54,25 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  backend:
+    build: .
+    container_name: swiftcartbackend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+      - elasticsearch
+      - kafka
+    environment:
+      - DATABASE_URL=jdbc:mysql://swiftcart-mysql:3306/swiftcart?useSSL=false&allowPublicKeyRetrieval=true
+      - DATABASE_USER=root
+      - DATABASE_PASSWORD=password
+      - REDIS_HOST=swiftcart-redis
+      - ES_HOST=swiftcart-elasticsearch
+      - KAFKA_BROKERS=swiftcart-kafka:9092
+      - JWT_SECRET=dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1wcm9kdWN0aW9uLWtleS1mb3Itc3dpZnRjYXJ0LWJhY2tlbmQtc2VydmVyLTMyMS1iYXNlNjQ=
+
 volumes:
   mysql-data:
   redis-data:
