@@ -28,9 +28,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?useSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&allowPublicKeyRetrieval=true}
-    username: ${DATABASE_USER:2Honwd66Qkukh9g.root}
-    password: ${DATABASE_PASSWORD:01YlmXmCjdbhzqqc}
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?useSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&allowPublicKeyRetrieval=true}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DATABASE_USER:2Honwd66Qkukh9g.root}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:01YlmXmCjdbhzqqc}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
