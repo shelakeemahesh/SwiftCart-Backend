@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 public class AdminControllerIntegrationTest {
 
     @Autowired
@@ -136,7 +136,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/users")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))));
+                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(1))));
     }
 
     @Test
@@ -154,7 +154,7 @@ public class AdminControllerIntegrationTest {
                         .param("role", "SELLER")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role", is("SELLER")));
+                .andExpect(jsonPath("$.data.role", is("SELLER")));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(delete("/api/v1/admin/users/" + testUser.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message", is("User deactivated successfully")));
+                .andExpect(jsonPath("$.data.message", is("User deactivated successfully")));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/products")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))));
+                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(1))));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/admin/products/" + testProduct.getId() + "/approve")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.active", is(true)));
+                .andExpect(jsonPath("$.data.active", is(true)));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class AdminControllerIntegrationTest {
                         .param("reason", "Incomplete specs details")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.active", is(false)));
+                .andExpect(jsonPath("$.data.active", is(false)));
     }
 
     @Test
@@ -200,9 +200,9 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/analytics/sales")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalSalesRevenue", notNullValue()))
-                .andExpect(jsonPath("$.totalOrdersCount", notNullValue()))
-                .andExpect(jsonPath("$.activeOrdersCount", notNullValue()));
+                .andExpect(jsonPath("$.data.totalSalesRevenue", notNullValue()))
+                .andExpect(jsonPath("$.data.totalOrdersCount", notNullValue()))
+                .andExpect(jsonPath("$.data.activeOrdersCount", notNullValue()));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/analytics/products")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", is(instanceOf(java.util.List.class))));
+                .andExpect(jsonPath("$.data", is(instanceOf(java.util.List.class))));
     }
 
     @Test
@@ -220,7 +220,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/coupons")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
+                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))));
     }
 
     @Test
@@ -239,8 +239,8 @@ public class AdminControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(newCoupon))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code", is("SUPER50")))
-                .andExpect(jsonPath("$.value", is(50.0)));
+                .andExpect(jsonPath("$.data.code", is("SUPER50")))
+                .andExpect(jsonPath("$.data.value", is(50.0)));
     }
 
     @Test
@@ -259,8 +259,8 @@ public class AdminControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(editReq))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code", is("WELCOME15")))
-                .andExpect(jsonPath("$.value", is(15.0)));
+                .andExpect(jsonPath("$.data.code", is("WELCOME15")))
+                .andExpect(jsonPath("$.data.value", is(15.0)));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(delete("/api/v1/admin/coupons/" + testCoupon.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message", is("Coupon deactivated successfully")));
+                .andExpect(jsonPath("$.data.message", is("Coupon deactivated successfully")));
     }
 
     @Test
@@ -278,7 +278,7 @@ public class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/flash-sales")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", is(instanceOf(java.util.List.class))));
+                .andExpect(jsonPath("$.data", is(instanceOf(java.util.List.class))));
     }
 
     @Test
@@ -296,7 +296,7 @@ public class AdminControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(flashSale))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.salePrice", is(80.0)))
-                .andExpect(jsonPath("$.stockLimit", is(5)));
+                .andExpect(jsonPath("$.data.salePrice", is(80.0)))
+                .andExpect(jsonPath("$.data.stockLimit", is(5)));
     }
 }

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -27,11 +28,14 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 
 @SpringBootTest
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 public class PaymentServiceTest {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Value("${razorpay.key.secret}")
+    private String razorpayKeySecret;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -88,8 +92,8 @@ public class PaymentServiceTest {
         String razorpayOrderId = "order_test123";
         String razorpayPaymentId = "pay_test456";
         
-        // Compute correct signature using secret "mocksecret" (configured as default in application.yml)
-        String secret = "mocksecret";
+        // Compute correct signature using the configured secret
+        String secret = razorpayKeySecret;
         String payload = razorpayOrderId + "|" + razorpayPaymentId;
         String signature = calculateHmacSha256(payload, secret);
 

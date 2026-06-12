@@ -28,22 +28,25 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test?useSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&allowPublicKeyRetrieval=true}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DATABASE_USER:2Honwd66Qkukh9g.root}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:01YlmXmCjdbhzqqc}}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}
+    username: ${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}
+    password: ${SPRING_DATASOURCE_PASSWORD:01YlmXmCjdbhzqqc}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      connection-test-query: SELECT 1
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
+    database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     show-sql: false
-  hikari:
-    minimum-idle: 5
-    maximum-pool-size: 20
-    connection-timeout: 30000
-    idle-timeout: 600000
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
