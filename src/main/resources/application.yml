@@ -37,7 +37,6 @@ spring:
       ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     show-sql: false
   hikari:
