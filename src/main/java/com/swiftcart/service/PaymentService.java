@@ -164,8 +164,16 @@ public class PaymentService {
 
         // Redis Idempotency Check using webhook signature as unique key
         String idempotencyKey = "webhook_processed:" + signatureHeader;
-        Boolean isNew = redisTemplate.opsForValue().setIfAbsent(idempotencyKey, "true", Duration.ofHours(24));
-        if (Boolean.FALSE.equals(isNew)) {
+        boolean isNew = true;
+        try {
+            Boolean result = redisTemplate.opsForValue().setIfAbsent(idempotencyKey, "true", Duration.ofHours(24));
+            if (result != null) {
+                isNew = result;
+            }
+        } catch (Exception e) {
+            log.warn("Redis is unavailable for webhook idempotency check. Proceeding without check. Error: {}", e.getMessage());
+        }
+        if (!isNew) {
             log.info("Webhook already processed (Idempotency key: {})", signatureHeader);
             return;
         }
