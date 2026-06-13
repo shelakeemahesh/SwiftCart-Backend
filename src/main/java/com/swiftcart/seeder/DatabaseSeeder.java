@@ -38,13 +38,97 @@ public class DatabaseSeeder implements CommandLineRunner {
     
     private static final Map<String, String> SUBCAT_TO_ROOT = new HashMap<>();
     static {
-        SUBCAT_TO_ROOT.put("Accessories", "Home");
-        SUBCAT_TO_ROOT.put("Bags", "Fashion");
+        // Electronics
         SUBCAT_TO_ROOT.put("Camera Accessories", "Electronics");
-        SUBCAT_TO_ROOT.put("College Supplies", "Books");
         SUBCAT_TO_ROOT.put("Laptop Accessories", "Electronics");
         SUBCAT_TO_ROOT.put("Mobile Accessories", "Electronics");
-        // We will default anything unknown to "Home" just like the python script
+        SUBCAT_TO_ROOT.put("Tablet Accessories", "Electronics");
+        SUBCAT_TO_ROOT.put("Computer Peripherals", "Electronics");
+        SUBCAT_TO_ROOT.put("Network Components", "Electronics");
+        SUBCAT_TO_ROOT.put("NEWGEN TECH EO-HS3303 218 Wired Headset (White)", "Electronics");
+
+        // Fashion
+        SUBCAT_TO_ROOT.put("Bags", "Fashion");
+        SUBCAT_TO_ROOT.put("Men's Clothing", "Fashion");
+        SUBCAT_TO_ROOT.put("Women's Clothing", "Fashion");
+        SUBCAT_TO_ROOT.put("Men's Footwear", "Fashion");
+        SUBCAT_TO_ROOT.put("Women's Footwear", "Fashion");
+        SUBCAT_TO_ROOT.put("Belts", "Fashion");
+        SUBCAT_TO_ROOT.put("Wrist Watches", "Fashion");
+        SUBCAT_TO_ROOT.put("Watch Accessories", "Fashion");
+        SUBCAT_TO_ROOT.put("Bangles, Bracelets & Armlets", "Fashion");
+        SUBCAT_TO_ROOT.put("Necklaces & Chains", "Fashion");
+        SUBCAT_TO_ROOT.put("Jewellery Sets", "Fashion");
+        SUBCAT_TO_ROOT.put("Pendants & Lockets", "Fashion");
+        SUBCAT_TO_ROOT.put("Rings", "Fashion");
+        SUBCAT_TO_ROOT.put("HH Oval Sunglasses", "Fashion");
+        SUBCAT_TO_ROOT.put("Olvin Aviator Sunglasses", "Fashion");
+        SUBCAT_TO_ROOT.put("Clovia Women's Full Coverage Bra", "Fashion");
+        SUBCAT_TO_ROOT.put("Leading lady Women's Camisole", "Fashion");
+        SUBCAT_TO_ROOT.put("RajeshFashion Women's Leggings", "Fashion");
+        SUBCAT_TO_ROOT.put("Siyas Collection Lac Cubic Zirconia Bangle Set (...", "Fashion");
+        SUBCAT_TO_ROOT.put("TSG Breeze Printed Women's Round Neck Multicolor...", "Fashion");
+        SUBCAT_TO_ROOT.put("Vishudh Printed Women's Straight Kurta", "Fashion");
+        SUBCAT_TO_ROOT.put("soie Fashion Women's Full Coverage Bra", "Fashion");
+        SUBCAT_TO_ROOT.put("Breakbounce Men's Vest", "Fashion");
+        SUBCAT_TO_ROOT.put("Klaur Melbourne Bellies", "Fashion");
+
+        // Toys
+        SUBCAT_TO_ROOT.put("Action Figures", "Toys");
+        SUBCAT_TO_ROOT.put("Baby & Kids Gifts", "Toys");
+        SUBCAT_TO_ROOT.put("Diapering & Potty Training", "Toys");
+        SUBCAT_TO_ROOT.put("Infant Wear", "Toys");
+        SUBCAT_TO_ROOT.put("Kids' Clothing", "Toys");
+
+        // Books
+        SUBCAT_TO_ROOT.put("College Supplies", "Books");
+        SUBCAT_TO_ROOT.put("Pens", "Books");
+        SUBCAT_TO_ROOT.put("School Supplies", "Books");
+
+        // Beauty
+        SUBCAT_TO_ROOT.put("Body and Skin Care", "Beauty");
+        SUBCAT_TO_ROOT.put("Hair Care", "Beauty");
+        SUBCAT_TO_ROOT.put("Makeup", "Beauty");
+        SUBCAT_TO_ROOT.put("Fragrances", "Beauty");
+        SUBCAT_TO_ROOT.put("Personal Care Appliances", "Beauty");
+
+        // Sports
+        SUBCAT_TO_ROOT.put("Outdoor & Adventure", "Sports");
+        SUBCAT_TO_ROOT.put("Car Accessories", "Sports");
+        SUBCAT_TO_ROOT.put("Car & Bike Accessories", "Sports");
+        SUBCAT_TO_ROOT.put("Gking Hand Stiched Steering Cover For Maruti Ert...", "Sports");
+
+        // Grocery
+        SUBCAT_TO_ROOT.put("Combos and Kits", "Grocery");
+        SUBCAT_TO_ROOT.put("Health Care", "Grocery");
+        SUBCAT_TO_ROOT.put("Housekeeping & Laundry", "Grocery");
+
+        // Home
+        SUBCAT_TO_ROOT.put("Accessories", "Home");
+        SUBCAT_TO_ROOT.put("Accessories & Spare parts", "Home");
+        SUBCAT_TO_ROOT.put("Bar & Glassware", "Home");
+        SUBCAT_TO_ROOT.put("Bath Linen", "Home");
+        SUBCAT_TO_ROOT.put("Bed Linen", "Home");
+        SUBCAT_TO_ROOT.put("Bedroom Furniture", "Home");
+        SUBCAT_TO_ROOT.put("Coffee Mugs", "Home");
+        SUBCAT_TO_ROOT.put("Cookware", "Home");
+        SUBCAT_TO_ROOT.put("Curtains & Accessories", "Home");
+        SUBCAT_TO_ROOT.put("Cushions, Pillows & Covers", "Home");
+        SUBCAT_TO_ROOT.put("Dinnerware & Crockery", "Home");
+        SUBCAT_TO_ROOT.put("Festive Decor", "Home");
+        SUBCAT_TO_ROOT.put("Floor Coverings", "Home");
+        SUBCAT_TO_ROOT.put("Kitchen & Dining Linen", "Home");
+        SUBCAT_TO_ROOT.put("Kitchen Appliances", "Home");
+        SUBCAT_TO_ROOT.put("Kitchen Tools", "Home");
+        SUBCAT_TO_ROOT.put("Lighting", "Home");
+        SUBCAT_TO_ROOT.put("Living Room Furnishing", "Home");
+        SUBCAT_TO_ROOT.put("Pet Furniture", "Home");
+        SUBCAT_TO_ROOT.put("Showpiece", "Home");
+        SUBCAT_TO_ROOT.put("Showpieces", "Home");
+        SUBCAT_TO_ROOT.put("Table Decor & Handicrafts", "Home");
+        SUBCAT_TO_ROOT.put("Tools", "Home");
+        SUBCAT_TO_ROOT.put("Wall Decor & Clocks", "Home");
+        SUBCAT_TO_ROOT.put("Candles & Fragrances", "Home");
     }
 
     public DatabaseSeeder(CategoryRepository categoryRepository, ProductRepository productRepository, ProductImageRepository productImageRepository, UserRepository userRepository) {
