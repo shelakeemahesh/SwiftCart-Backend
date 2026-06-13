@@ -147,6 +147,12 @@
             <version>10.1.0</version>
         </dependency>
 
+        <!-- Jackson Hibernate datatype for lazy-loading serialization -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-hibernate6</artifactId>
+        </dependency>
+
         <!-- Testing Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
