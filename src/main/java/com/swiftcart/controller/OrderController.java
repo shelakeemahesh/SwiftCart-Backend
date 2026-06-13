@@ -257,9 +257,6 @@ public class OrderController {
     }
 
     private User getUserFromPrincipal(Principal principal) {
-        String username = principal.getName();
-        return userRepository.findByPhone(username)
-                .or(() -> userRepository.findByEmail(username))
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+        return com.swiftcart.security.SecurityUtil.getUserFromPrincipal(principal, userRepository);
     }
 }

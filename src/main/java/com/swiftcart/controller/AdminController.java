@@ -211,10 +211,7 @@ public class AdminController {
         String jobId = UUID.randomUUID().toString();
         
         // Find admin user ID to associate as seller or just generic seller ID
-        String username = principal.getName();
-        User admin = userRepository.findByPhone(username)
-                .or(() -> userRepository.findByEmail(username))
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        User admin = com.swiftcart.security.SecurityUtil.getUserFromPrincipal(principal, userRepository);
 
         productService.processCsvImport(jobId, file.getBytes(), admin.getId());
 
