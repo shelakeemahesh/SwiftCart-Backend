@@ -28,9 +28,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}
     username: ${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}
-    password: ${SPRING_DATASOURCE_PASSWORD:01YlmXmCjdbhzqqc}
+    password: ${SPRING_DATASOURCE_PASSWORD:MGMGl45fT2PLGknJ}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
