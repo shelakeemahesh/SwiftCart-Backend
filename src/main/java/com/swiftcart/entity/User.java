@@ -55,7 +55,7 @@ public class User {
     private String avatarUrl;
 
     @Column(name = "email_verified")
-    private boolean emailVerified = false;
+    private Boolean emailVerified = false;
 
     // Seller-specific fields
     @Column(name = "business_name")
@@ -133,8 +133,8 @@ public class User {
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
-    public boolean isEmailVerified() { return emailVerified; }
-    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+    public Boolean isEmailVerified() { return emailVerified != null && emailVerified; }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
 
     public String getBusinessName() { return businessName; }
     public void setBusinessName(String businessName) { this.businessName = businessName; }
@@ -173,7 +173,7 @@ public class User {
         private String provider = "LOCAL";
         private String providerId;
         private String avatarUrl;
-        private boolean emailVerified = false;
+        private Boolean emailVerified = false;
         private String businessName;
         private String gstin;
         private String pickupAddress;
@@ -230,7 +230,7 @@ public class User {
             return this;
         }
 
-        public UserBuilder emailVerified(boolean emailVerified) {
+        public UserBuilder emailVerified(Boolean emailVerified) {
             this.emailVerified = emailVerified;
             return this;
         }
