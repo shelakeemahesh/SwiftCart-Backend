@@ -67,11 +67,11 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
     }
 
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        Cookie cookie = new Cookie(name, value);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(maxAge);
-        response.addCookie(cookie);
+        String cookieHeader = String.format(
+            "%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=None; Secure",
+            name, value, maxAge
+        );
+        response.addHeader("Set-Cookie", cookieHeader);
     }
 
     private void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
