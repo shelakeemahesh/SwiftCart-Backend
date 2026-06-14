@@ -141,7 +141,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        if (categoryRepository.count() > 0) {
+        if (productRepository.count() > 0) {
             log.info("Database already seeded. Skipping...");
             return;
         }
@@ -165,12 +165,15 @@ public class DatabaseSeeder implements CommandLineRunner {
         Map<String, Category> rootCategories = new HashMap<>();
         for (int i = 0; i < ROOT_CATEGORIES.length; i++) {
             String rootName = ROOT_CATEGORIES[i];
-            Category root = new Category();
-            root.setName(rootName);
-            root.setSlug(toSlug(rootName));
-            root.setActive(true);
-            root.setDisplayOrder(i);
-            root = categoryRepository.save(root);
+            final int displayOrder = i;
+            Category root = categoryRepository.findByName(rootName).orElseGet(() -> {
+                Category cat = new Category();
+                cat.setName(rootName);
+                cat.setSlug(toSlug(rootName));
+                cat.setActive(true);
+                cat.setDisplayOrder(displayOrder);
+                return categoryRepository.save(cat);
+            });
             rootCategories.put(rootName, root);
         }
 
@@ -204,12 +207,14 @@ public class DatabaseSeeder implements CommandLineRunner {
 
                 // Find or create subcategory
                 Category subCat = subCategories.computeIfAbsent(subcatName, k -> {
-                    Category cat = new Category();
-                    cat.setName(subcatName);
-                    cat.setSlug(toSlug(subcatName) + "-" + UUID.randomUUID().toString().substring(0, 5));
-                    cat.setParent(parent);
-                    cat.setActive(true);
-                    return categoryRepository.save(cat);
+                    return categoryRepository.findByNameAndParent(subcatName, parent).orElseGet(() -> {
+                        Category cat = new Category();
+                        cat.setName(subcatName);
+                        cat.setSlug(toSlug(subcatName) + "-" + UUID.randomUUID().toString().substring(0, 5));
+                        cat.setParent(parent);
+                        cat.setActive(true);
+                        return categoryRepository.save(cat);
+                    });
                 });
 
                 // Create Product
