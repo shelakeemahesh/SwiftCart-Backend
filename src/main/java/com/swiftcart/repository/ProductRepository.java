@@ -54,4 +54,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @EntityGraph(attributePaths = {"seller", "category"})
     List<Product> findBySellerId(Long sellerId, Pageable pageable);
+
+    @Query("SELECT p.name FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :prefix, '%')) AND p.isActive = true")
+    List<String> findNamesByPrefix(@Param("prefix") String prefix, Pageable pageable);
 }

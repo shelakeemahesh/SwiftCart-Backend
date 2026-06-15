@@ -208,11 +208,7 @@ public class SearchService {
         } catch (Exception e) {
             log.error("Failed to fetch search autocomplete from ES: {}", e.getMessage());
             // Fallback suggestion list from DB query
-            return productRepository.findAll().stream()
-                    .map(Product::getName)
-                    .filter(name -> name.toLowerCase().contains(prefix.toLowerCase()))
-                    .limit(10)
-                    .collect(Collectors.toList());
+            return productRepository.findNamesByPrefix(prefix, PageRequest.of(0, 10));
         }
     }
 
