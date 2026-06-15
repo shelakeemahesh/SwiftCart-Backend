@@ -4,6 +4,7 @@ import com.swiftcart.entity.Order;
 import com.swiftcart.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,9 +15,12 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @EntityGraph(attributePaths = {"items", "items.product", "items.variant", "address"})
     Optional<Order> findByOrderUuid(String orderUuid);
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
+    @EntityGraph(attributePaths = {"items", "items.product", "items.variant"})
     Page<Order> findByUserId(Long userId, Pageable pageable);
+    @EntityGraph(attributePaths = {"items", "items.product", "items.variant"})
     Page<Order> findByUserIdAndStatus(Long userId, OrderStatus status, Pageable pageable);
     Optional<Order> findFirstByUserIdAndStatusNotInOrderByIdDesc(Long userId, List<OrderStatus> statuses);
 

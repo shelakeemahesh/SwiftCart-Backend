@@ -10,12 +10,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categories")
+@Transactional(readOnly = true)
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -27,7 +29,6 @@ public class CategoryController {
     }
 
     @GetMapping
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Category>>> getRootCategories() {
         return ResponseEntity.ok(ApiResponse.success(categoryService.getRootCategories()));
     }

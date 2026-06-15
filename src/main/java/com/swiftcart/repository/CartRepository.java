@@ -1,6 +1,7 @@
 package com.swiftcart.repository;
 
 import com.swiftcart.entity.CartItem;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -9,6 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface CartRepository extends JpaRepository<CartItem, Long> {
+    @EntityGraph(attributePaths = {"product", "product.images", "product.seller", "product.category", "variant"})
     List<CartItem> findByUserId(Long userId);
     Optional<CartItem> findByUserIdAndProductIdAndVariantId(Long userId, Long productId, Long variantId);
     Optional<CartItem> findByUserIdAndProductIdAndVariantIsNull(Long userId, Long productId);

@@ -38,6 +38,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnoreProperties({"subCategories"})
     private Category category;
 
     private String brand;
