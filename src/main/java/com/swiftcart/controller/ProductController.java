@@ -108,6 +108,11 @@ public class ProductController {
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         }, pageable);
 
+        result.getContent().forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -134,12 +139,22 @@ public class ProductController {
 
     @GetMapping("/trending")
     public ResponseEntity<ApiResponse<List<Product>>> getTrendingProducts() {
-        return ResponseEntity.ok(ApiResponse.success(productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc()));
+        List<Product> products = productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
+        products.forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @GetMapping("/new-arrivals")
     public ResponseEntity<ApiResponse<List<Product>>> getNewArrivals() {
-        return ResponseEntity.ok(ApiResponse.success(productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc()));
+        List<Product> products = productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
+        products.forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @GetMapping("/deals")
@@ -149,6 +164,10 @@ public class ProductController {
                 .map(FlashSale::getProduct)
                 .filter(Product::isActive)
                 .collect(Collectors.toList());
+        products.forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 
@@ -156,8 +175,13 @@ public class ProductController {
     public ResponseEntity<ApiResponse<List<Product>>> getRelatedProducts(@PathVariable Long id, @RequestParam(defaultValue = "5") int limit) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        return ResponseEntity.ok(ApiResponse.success(productRepository.findRelatedProducts(
-                product.getCategory().getId(), id, PageRequest.of(0, limit))));
+        List<Product> products = productRepository.findRelatedProducts(
+                product.getCategory().getId(), id, PageRequest.of(0, limit));
+        products.forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
+        return ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @GetMapping("/{id}/frequently-bought")
@@ -167,6 +191,10 @@ public class ProductController {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<Product> list = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, 3));
+        list.forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 }

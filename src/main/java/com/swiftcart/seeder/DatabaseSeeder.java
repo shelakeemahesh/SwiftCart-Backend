@@ -240,6 +240,9 @@ public class DatabaseSeeder implements CommandLineRunner {
                     for (int i = 0; i < urls.length; i++) {
                         String url = urls[i].trim();
                         if (url.isEmpty()) continue;
+                        if (url.contains("flixcart.com")) {
+                            url = url.replaceAll("http://img[0-9a-zA-Z]+\\.flixcart\\.com", "https://rukminim1.flixcart.com");
+                        }
                         ProductImage image = new ProductImage();
                         image.setImageUrl(url);
                         image.setPrimary(i == 0);

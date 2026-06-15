@@ -20,11 +20,11 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     @Override
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     Page<Product> findAll(Pageable pageable);
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.variants LEFT JOIN FETCH p.seller LEFT JOIN FETCH p.category WHERE p.slug = :slug AND p.isActive = true")
@@ -39,19 +39,19 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     boolean existsBySlug(String slug);
 
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     List<Product> findTop20ByIsActiveTrueOrderBySoldCountDesc();
 
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     List<Product> findTop20ByIsActiveTrueOrderByCreatedAtDesc();
 
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     List<Product> findByCategoryIdAndIsActiveTrue(Long categoryId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     @Query("SELECT p FROM Product p WHERE p.category.id = :categoryId AND p.id <> :productId AND p.isActive = true")
     List<Product> findRelatedProducts(@Param("categoryId") Long categoryId, @Param("productId") Long productId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"images", "seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category"})
     List<Product> findBySellerId(Long sellerId, Pageable pageable);
 }

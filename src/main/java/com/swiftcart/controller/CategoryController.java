@@ -55,6 +55,11 @@ public class CategoryController {
                 cb.equal(root.get("isActive"), true)
             ), pageable);
             
+        products.getContent().forEach(p -> {
+            if (p.getImages() != null) p.getImages().size();
+            if (p.getVariants() != null) p.getVariants().size();
+        });
+            
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -96,9 +97,11 @@ public class Product {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<ProductImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private Set<ProductVariant> variants = new LinkedHashSet<>();
 
     public Product() {}
