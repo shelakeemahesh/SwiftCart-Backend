@@ -48,10 +48,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user;
         if (userOptional.isPresent()) {
             user = userOptional.get();
-            if (!user.getProvider().equalsIgnoreCase(registrationId)) {
-                throw new RuntimeException("Email already registered with " + user.getProvider().toUpperCase() + ". Use that to login.");
+            String existingProvider = user.getProvider();
+            if (existingProvider == null || existingProvider.equalsIgnoreCase("LOCAL")) {
+                user.setProvider(registrationId);
+                user.setProviderId(oAuth2UserInfo.getId());
+                if (user.getAvatarUrl() == null || user.getAvatarUrl().isEmpty()) {
+                    user.setAvatarUrl(oAuth2UserInfo.getImageUrl());
+                }
+                user = userRepository.save(user);
+            } else if (!existingProvider.equalsIgnoreCase(registrationId)) {
+                throw new org.springframework.security.authentication.InternalAuthenticationServiceException(
+                    "Email already registered with " + existingProvider.toUpperCase() + ". Use that to login."
+                );
+            } else {
+                user = updateExistingUser(user, oAuth2UserInfo);
             }
-            user = updateExistingUser(user, oAuth2UserInfo);
         } else {
             user = registerNewUser(oAuth2UserRequest, oAuth2UserInfo);
         }
