@@ -1,60 +1,23 @@
 package com.swiftcart.entity;
 
-import com.swiftcart.enums.*;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.elasticsearch.annotations.Document;
-import org.springframework.data.elasticsearch.annotations.Field;
-import org.springframework.data.elasticsearch.annotations.FieldType;
-import org.springframework.data.elasticsearch.annotations.Setting;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@Document(indexName = "swiftcart_products")
-@Setting(settingPath = "/elasticsearch/settings.json")
 public class ProductDocument {
 
-    @Id
     private String id;
-
-    @Field(type = FieldType.Text, analyzer = "autocomplete_analyzer", searchAnalyzer = "standard")
     private String name;
-
-    @Field(type = FieldType.Keyword)
     private String brand;
-
-    @Field(type = FieldType.Keyword)
     private String categoryPath;
-
-    @Field(type = FieldType.Text, analyzer = "standard")
     private String description;
-
-    @Field(type = FieldType.Double)
     private Double price;
-
-    @Field(type = FieldType.Double)
     private Double rating;
-
-    @Field(type = FieldType.Double)
     private Double discount;
-
-    @Field(type = FieldType.Boolean)
     private Boolean inStock;
-
-    @Field(type = FieldType.Keyword)
     private String slug;
-
-    @Field(type = FieldType.Double)
     private Double mrp;
-
-    @Field(type = FieldType.Integer)
     private Integer reviewCount;
-
-    @Field(type = FieldType.Keyword)
     private List<String> images = new ArrayList<>();
-
-    @Field(type = FieldType.Keyword)
     private List<String> tags = new ArrayList<>();
 
     public ProductDocument() {}

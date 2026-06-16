@@ -13,7 +13,7 @@ import com.swiftcart.entity.RazorpayPayment;
 import com.swiftcart.enums.RazorpayPaymentStatus;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.RazorpayPaymentRepository;
-import com.swiftcart.kafka.producer.OrderEventProducer;
+import com.swiftcart.service.NotificationService;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final RazorpayPaymentRepository razorpayPaymentRepository;
     private final RazorpayClient razorpayClient;
-    private final OrderEventProducer orderEventProducer;
+    private final NotificationService notificationService;
     private final StringRedisTemplate redisTemplate;
 
     @Value("${razorpay.key.id}")
@@ -53,11 +53,11 @@ public class PaymentService {
             OrderRepository orderRepository,
             RazorpayPaymentRepository razorpayPaymentRepository,
             RazorpayClient razorpayClient,
-            OrderEventProducer orderEventProducer) {
+            NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.razorpayPaymentRepository = razorpayPaymentRepository;
         this.razorpayClient = razorpayClient;
-        this.orderEventProducer = orderEventProducer;
+        this.notificationService = notificationService;
         this.redisTemplate = redisTemplate;
     }
 
@@ -137,8 +137,9 @@ public class PaymentService {
             order.setStatus(OrderStatus.CONFIRMED);
             orderRepository.save(order);
 
-            // Publish OrderConfirmed event to Kafka
-            orderEventProducer.publishOrderConfirmed(order);
+            if (order.getUser() != null && order.getUser().getEmail() != null) {
+                notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+            }
             log.info("Payment verified successfully via signature verification for order UUID: {}", order.getOrderUuid());
         }
 
@@ -205,7 +206,9 @@ public class PaymentService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
 
-                orderEventProducer.publishOrderConfirmed(order);
+                if (order.getUser() != null && order.getUser().getEmail() != null) {
+                    notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                }
                 log.info("Webhook marked order {} as PAID (payment captured)", order.getOrderUuid());
             }
 
@@ -277,7 +280,9 @@ public class PaymentService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
 
-                orderEventProducer.publishOrderConfirmed(order);
+                if (order.getUser() != null && order.getUser().getEmail() != null) {
+                    notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                }
                 log.info("Webhook marked order {} as PAID (order.paid event)", order.getOrderUuid());
             }
         });

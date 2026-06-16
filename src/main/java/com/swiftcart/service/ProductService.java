@@ -1,6 +1,5 @@
 package com.swiftcart.service;
 
-import com.swiftcart.config.KafkaConfig;
 import com.swiftcart.entity.Category;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.ProductImage;
@@ -8,6 +7,7 @@ import com.swiftcart.entity.User;
 import com.swiftcart.repository.CategoryRepository;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.UserRepository;
+import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.util.SlugUtil;
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
@@ -17,7 +17,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +42,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final S3Service s3Service;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ReviewRepository reviewRepository;
     private final RedisFallbackService redisService;
 
     public ProductService(
@@ -51,13 +50,13 @@ public class ProductService {
             CategoryRepository categoryRepository,
             UserRepository userRepository,
             S3Service s3Service,
-            java.util.Optional<KafkaTemplate<String, Object>> kafkaTemplate,
+            ReviewRepository reviewRepository,
             RedisFallbackService redisService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.s3Service = s3Service;
-        this.kafkaTemplate = kafkaTemplate.orElse(null);
+        this.reviewRepository = reviewRepository;
         this.redisService = redisService;
     }
 
@@ -81,10 +80,6 @@ public class ProductService {
         }
 
         Product saved = productRepository.save(product);
-
-        // Publish to Kafka for Elasticsearch Indexing
-        publishIndexingEvent(saved);
-
         return saved;
     }
 
@@ -106,7 +101,6 @@ public class ProductService {
         existing.setSpecifications(updatedProduct.getSpecifications());
 
         Product saved = productRepository.save(existing);
-        publishIndexingEvent(saved);
         return saved;
     }
 
@@ -141,7 +135,7 @@ public class ProductService {
         return currentSlug;
     }
 
-    // Recalculates average rating asynchronously (e.g. from Kafka consumer or service call)
+    // Recalculates average rating asynchronously (e.g. from service call)
     @Transactional
     @CacheEvict(value = "productDetails", allEntries = true)
     public void recalculateAverageRating(Long productId, BigDecimal newAverage, int newCount) {
@@ -150,8 +144,33 @@ public class ProductService {
         product.setAverageRating(newAverage);
         product.setReviewCount(newCount);
         productRepository.save(product);
-        publishIndexingEvent(product);
         log.info("Recalculated rating for product ID {}: avg = {}, count = {}", productId, newAverage, newCount);
+    }
+
+    @Async
+    @Transactional
+    @CacheEvict(value = "productDetails", allEntries = true)
+    public void recalculateProductRatingAsync(Long productId) {
+        log.info("Recalculating average rating asynchronously for product ID: {}", productId);
+        try {
+            List<com.swiftcart.entity.Review> reviews = reviewRepository.findByProductId(productId);
+            if (reviews.isEmpty()) {
+                recalculateAverageRating(productId, BigDecimal.ZERO, 0);
+                return;
+            }
+
+            double sum = 0.0;
+            for (com.swiftcart.entity.Review r : reviews) {
+                sum += r.getRating();
+            }
+            double average = sum / reviews.size();
+            BigDecimal averageRating = BigDecimal.valueOf(average).setScale(2, java.math.RoundingMode.HALF_UP);
+            int count = reviews.size();
+
+            recalculateAverageRating(productId, averageRating, count);
+        } catch (Exception e) {
+            log.error("Failed to recalculate rating for product ID {}: {}", productId, e.getMessage());
+        }
     }
 
     // Image resizing to 800x1200 and 400x600 using Thumbnailator, and S3 upload
@@ -202,7 +221,6 @@ public class ProductService {
             product.getImages().add(thumbImg);
 
             productRepository.save(product);
-            publishIndexingEvent(product);
 
             return List.of(mainUrl, thumbUrl);
 
@@ -302,13 +320,4 @@ public class ProductService {
         return status != null ? status : "NOT_FOUND";
     }
 
-    private void publishIndexingEvent(Product product) {
-        try {
-            // Send to Kafka for Elasticsearch indexing
-            kafkaTemplate.send(KafkaConfig.PRODUCT_INDEXING_TOPIC, String.valueOf(product.getId()), product.getId());
-            log.info("Published product indexing event to Kafka for ID: {}", product.getId());
-        } catch (Exception e) {
-            log.error("Failed to publish indexing event for product {}: {}", product.getId(), e.getMessage());
-        }
-    }
 }

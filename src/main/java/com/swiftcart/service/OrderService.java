@@ -2,14 +2,12 @@ package com.swiftcart.service;
 
 import com.swiftcart.enums.*;
 
-import com.swiftcart.config.KafkaConfig;
 import com.swiftcart.entity.*;
 import com.swiftcart.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +30,6 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final PricingService pricingService;
     private final NotificationService notificationService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -43,8 +40,7 @@ public class OrderService {
             AddressRepository addressRepository,
             CouponRepository couponRepository,
             PricingService pricingService,
-            NotificationService notificationService,
-            java.util.Optional<KafkaTemplate<String, Object>> kafkaTemplate) {
+            NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartRepository = cartRepository;
@@ -54,7 +50,6 @@ public class OrderService {
         this.couponRepository = couponRepository;
         this.pricingService = pricingService;
         this.notificationService = notificationService;
-        this.kafkaTemplate = kafkaTemplate.orElse(null);
     }
 
     public Page<Order> listUserOrders(Long userId, OrderStatus status, Pageable pageable) {
@@ -230,8 +225,10 @@ public class OrderService {
             productRepository.save(p);
         }
 
-        // 8. Publish OrderPlaced Kafka event
-        publishOrderPlacedEvent(savedOrder);
+        // 8. Trigger asynchronous OrderPlaced email notification directly
+        if (savedOrder.getUser() != null && savedOrder.getUser().getEmail() != null) {
+            notificationService.sendOrderConfirmation(savedOrder.getUser().getEmail(), savedOrder.getOrderUuid());
+        }
 
         log.info("Order placed successfully with UUID: {}", savedOrder.getOrderUuid());
         return savedOrder;
@@ -271,7 +268,6 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
-        publishOrderStatusEvent(saved);
         return saved;
     }
 
@@ -290,7 +286,9 @@ public class OrderService {
 
         order.setStatus(OrderStatus.RETURN_REQUESTED);
         Order saved = orderRepository.save(order);
-        publishOrderStatusEvent(saved);
+        if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+            notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+        }
         return saved;
     }
 
@@ -301,23 +299,11 @@ public class OrderService {
 
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
-        publishOrderStatusEvent(saved);
+        if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+            notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+        }
         return saved;
     }
 
-    private void publishOrderPlacedEvent(Order order) {
-        try {
-            kafkaTemplate.send(KafkaConfig.ORDER_PLACED_TOPIC, order.getOrderUuid(), order.getOrderUuid());
-        } catch (Exception e) {
-            log.error("Failed to publish OrderPlaced event to Kafka: {}", e.getMessage());
-        }
-    }
 
-    private void publishOrderStatusEvent(Order order) {
-        try {
-            kafkaTemplate.send(KafkaConfig.ORDER_STATUS_TOPIC, order.getOrderUuid(), order.getStatus().name());
-        } catch (Exception e) {
-            log.error("Failed to publish OrderStatus event to Kafka: {}", e.getMessage());
-        }
-    }
 }

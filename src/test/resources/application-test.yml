@@ -17,8 +17,4 @@ spring:
   redis:
     host: localhost
     port: 6379
-  kafka:
-    bootstrap-servers: localhost:9092
-  elasticsearch:
-    host: localhost
-    port: 9200
+

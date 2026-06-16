@@ -67,28 +67,14 @@ spring:
           auth: true
           starttls:
             enable: true
-  kafka:
-    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
-    consumer:
-      group-id: swiftcart-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 
 jwt:
   secret: ${JWT_SECRET:dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=}
   access-token-expiry-ms: 900000 # 15 minutes
   refresh-token-expiry-ms: 604800000 # 7 days
 
-elasticsearch:
-  host: ${ES_HOST:localhost}
-  port: ${ES_PORT:9200}
-  uris: http://${elasticsearch.host}:${elasticsearch.port}
+
 
 razorpay:
   key:
@@ -115,10 +101,7 @@ management:
       enabled: false
     redis:
       enabled: false
-    elasticsearch:
-      enabled: false
-    kafka:
-      enabled: false
+
 
 app:
   frontend:

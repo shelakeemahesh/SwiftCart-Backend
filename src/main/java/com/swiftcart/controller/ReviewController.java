@@ -11,7 +11,7 @@ import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.repository.UserRepository;
-import com.swiftcart.kafka.producer.OrderEventProducer;
+import com.swiftcart.service.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -31,19 +31,19 @@ public class ReviewController {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final OrderEventProducer eventProducer;
+    private final ProductService productService;
 
     public ReviewController(
             ReviewRepository reviewRepository,
             OrderRepository orderRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
-            OrderEventProducer eventProducer) {
+            ProductService productService) {
         this.reviewRepository = reviewRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
-        this.eventProducer = eventProducer;
+        this.productService = productService;
     }
 
     @GetMapping("/products/{productId}")
@@ -101,8 +101,8 @@ public class ReviewController {
 
         Review saved = reviewRepository.save(review);
 
-        // Async recalculation of average rating via Kafka
-        eventProducer.publishRatingRecalculation(productId);
+        // Async recalculation of average rating directly
+        productService.recalculateProductRatingAsync(productId);
 
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
@@ -122,8 +122,8 @@ public class ReviewController {
         review.setRating(updated.getRating());
         Review saved = reviewRepository.save(review);
 
-        // Recalculate avg rating
-        eventProducer.publishRatingRecalculation(review.getProduct().getId());
+        // Recalculate avg rating directly
+        productService.recalculateProductRatingAsync(review.getProduct().getId());
 
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
@@ -140,8 +140,8 @@ public class ReviewController {
 
         reviewRepository.delete(review);
 
-        // Recalculate avg rating
-        eventProducer.publishRatingRecalculation(review.getProduct().getId());
+        // Recalculate avg rating directly
+        productService.recalculateProductRatingAsync(review.getProduct().getId());
 
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Review deleted successfully")));
     }
