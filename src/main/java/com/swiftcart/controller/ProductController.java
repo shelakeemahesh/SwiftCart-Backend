@@ -107,10 +107,7 @@ public class ProductController {
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         }, pageable);
 
-        result.getContent().forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
+        result.getContent();
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }
@@ -139,20 +136,12 @@ public class ProductController {
     @GetMapping("/trending")
     public ResponseEntity<ApiResponse<List<Product>>> getTrendingProducts() {
         List<Product> products = productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
-        products.forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @GetMapping("/new-arrivals")
     public ResponseEntity<ApiResponse<List<Product>>> getNewArrivals() {
         List<Product> products = productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
-        products.forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 
@@ -163,10 +152,6 @@ public class ProductController {
                 .map(FlashSale::getProduct)
                 .filter(Product::isActive)
                 .collect(Collectors.toList());
-        products.forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 
@@ -176,10 +161,6 @@ public class ProductController {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<Product> products = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, limit));
-        products.forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 
@@ -190,10 +171,6 @@ public class ProductController {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<Product> list = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, 3));
-        list.forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 }

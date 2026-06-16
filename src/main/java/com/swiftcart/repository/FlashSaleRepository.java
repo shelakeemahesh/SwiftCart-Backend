@@ -14,11 +14,11 @@ import java.util.Optional;
 @Repository
 public interface FlashSaleRepository extends JpaRepository<FlashSale, Long> {
 
-    @EntityGraph(attributePaths = {"product", "product.seller", "product.category"})
+    @EntityGraph(attributePaths = {"product", "product.seller", "product.category", "product.images", "product.variants"})
     @Query("SELECT f FROM FlashSale f WHERE f.product.id = :productId AND f.startsAt <= :now AND f.endsAt >= :now")
     Optional<FlashSale> findActiveFlashSaleForProduct(@Param("productId") Long productId, @Param("now") LocalDateTime now);
 
-    @EntityGraph(attributePaths = {"product", "product.seller", "product.category"})
+    @EntityGraph(attributePaths = {"product", "product.seller", "product.category", "product.images", "product.variants"})
     @Query("SELECT f FROM FlashSale f WHERE f.startsAt <= :now AND f.endsAt >= :now")
     List<FlashSale> findActiveFlashSales(@Param("now") LocalDateTime now);
 }
