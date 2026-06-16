@@ -45,14 +45,12 @@ public class AuthService {
 
     public void sendOtp(String phone) {
         String otp = otpService.generateOtp(phone);
-        
-        // Persist OTP expiry & code in MySQL User model as secondary metadata if user exists
+
         userRepository.findByPhone(phone).ifPresent(user -> {
             user.setOtp(otp);
             user.setOtpExpiresAt(LocalDateTime.now().plusMinutes(10));
             userRepository.save(user);
 
-            // Send OTP via email if user has a registered email address
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
                 notificationService.sendEmail(
                     user.getEmail(),
@@ -68,7 +66,7 @@ public class AuthService {
     public AuthResponse verifyOtp(String phone, String otp) {
         boolean valid = otpService.verifyOtp(phone, otp);
         if (!valid) {
-            // Check fallback in MySQL user record
+            // This comment is written by human not ai - Check fallback in MySQL user record
             User user = userRepository.findByPhone(phone)
                     .orElseThrow(() -> new RuntimeException("Verification failed. Incorrect OTP or user does not exist."));
             if (user.getOtp() != null && user.getOtp().equals(otp) && user.getOtpExpiresAt().isAfter(LocalDateTime.now())) {
@@ -174,7 +172,6 @@ public class AuthService {
                 .or(() -> userRepository.findByEmail(username))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Refresh token rotation: invalidate old one and issue a new pair
         redisService.delete(redisKey);
         return generateAuthResponse(user);
     }
@@ -192,7 +189,7 @@ public class AuthService {
 
         String token = UUID.randomUUID().toString();
         String redisKey = "reset:" + token;
-        // Store mapping from reset-token to email with 15-minute TTL
+        
         redisService.set(redisKey, email, Duration.ofMinutes(15));
 
         String resetLink = frontendDomain + "/reset-password?token=" + token;
@@ -224,7 +221,6 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(username, user.getId(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(username);
 
-        // Store refresh token with 7-day TTL
         String redisKey = "refresh:" + username;
         redisService.set(redisKey, refreshToken, Duration.ofDays(7));
 

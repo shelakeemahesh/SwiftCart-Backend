@@ -53,7 +53,6 @@ public class OrderItem {
 
     public OrderItem() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -84,7 +83,6 @@ public class OrderItem {
     public BigDecimal getTotal() { return total; }
     public void setTotal(BigDecimal total) { this.total = total; }
 
-    // Nested Class
     public static class ProductSnapshot {
         private String name;
         private String brand;
@@ -104,7 +102,6 @@ public class OrderItem {
             this.mrp = mrp;
         }
 
-        // Getters and Setters
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
 
@@ -123,7 +120,6 @@ public class OrderItem {
         public BigDecimal getMrp() { return mrp; }
         public void setMrp(BigDecimal mrp) { this.mrp = mrp; }
 
-        // Builder for ProductSnapshot
         public static ProductSnapshotBuilder builder() {
             return new ProductSnapshotBuilder();
         }
@@ -172,7 +168,6 @@ public class OrderItem {
         }
     }
 
-    // Builder for OrderItem
     public static OrderItemBuilder builder() {
         return new OrderItemBuilder();
     }

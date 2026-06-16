@@ -56,10 +56,9 @@ public class ProductController {
             @RequestParam(defaultValue = "id,desc") String sort,
             @RequestParam(required = false) Long sellerId) {
 
-        // Setup Pageable with sorts
         String[] sortParts = sort.split(",");
         String sortField = sortParts[0];
-        // Map frontend base price sorts
+        
         if (sortField.equals("price")) {
             sortField = "basePrice";
         } else if (sortField.equals("rating")) {
@@ -186,7 +185,7 @@ public class ProductController {
 
     @GetMapping("/{id}/frequently-bought")
     public ResponseEntity<ApiResponse<List<Product>>> getFrequentlyBoughtTogether(@PathVariable Long id) {
-        // Simulating frequently bought together products
+        
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         List<Product> list = productRepository.findRelatedProducts(

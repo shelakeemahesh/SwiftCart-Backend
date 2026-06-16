@@ -38,7 +38,6 @@ public class FlashSale {
 
     public FlashSale() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -60,7 +59,6 @@ public class FlashSale {
     public int getSoldCount() { return soldCount; }
     public void setSoldCount(int soldCount) { this.soldCount = soldCount; }
 
-    // Builder
     public static FlashSaleBuilder builder() {
         return new FlashSaleBuilder();
     }

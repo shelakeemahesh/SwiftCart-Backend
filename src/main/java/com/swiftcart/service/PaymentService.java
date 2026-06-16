@@ -68,28 +68,25 @@ public class PaymentService {
 
         try {
             JSONObject orderRequest = new JSONObject();
-            // Razorpay amount is in paisa (multiply by 100)
+            
             int amountPaisa = swiftOrder.getFinalAmount().multiply(BigDecimal.valueOf(100)).intValue();
             orderRequest.put("amount", amountPaisa);
             orderRequest.put("currency", "INR");
             orderRequest.put("receipt", swiftOrder.getOrderUuid());
-            orderRequest.put("payment_capture", 1); // Auto-capture
+            orderRequest.put("payment_capture", 1); 
 
             JSONObject notes = new JSONObject();
             notes.put("swiftcart_order_id", swiftOrder.getOrderUuid());
             notes.put("user_id", swiftOrder.getUser().getId());
             orderRequest.put("notes", notes);
 
-            // Call Razorpay API to generate the order
             com.razorpay.Order rzpOrder = razorpayClient.orders.create(orderRequest);
             String rzpOrderId = rzpOrder.get("id");
 
-            // Save Razorpay order ID against the SwiftCart order
             swiftOrder.setRazorpayOrderId(rzpOrderId);
             swiftOrder.setPaymentStatus(PaymentStatus.PENDING);
             orderRepository.save(swiftOrder);
 
-            // Save audit payment record
             RazorpayPayment payment = RazorpayPayment.builder()
                     .order(swiftOrder)
                     .razorpayOrderId(rzpOrderId)
@@ -116,10 +113,9 @@ public class PaymentService {
 
     @Transactional
     public PaymentVerifyResponse verifyPayment(PaymentVerifyRequest req) {
-        // Construct the expected signature input
+        
         String payload = req.getRazorpayOrderId() + "|" + req.getRazorpayPaymentId();
 
-        // HMAC-SHA256 signature verification using Razorpay Key Secret
         String expectedSignature = calculateHmacSha256(payload, razorpayKeySecret);
         boolean isValid = expectedSignature.equals(req.getRazorpaySignature());
 
@@ -127,7 +123,6 @@ public class PaymentService {
             throw new RuntimeException("Signature mismatch — possible tampering");
         }
 
-        // Signature valid -> mark order as PAID (with Idempotency check)
         Order order = orderRepository.findByOrderUuid(req.getSwiftcartOrderUuid())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
@@ -143,7 +138,6 @@ public class PaymentService {
             log.info("Payment verified successfully via signature verification for order UUID: {}", order.getOrderUuid());
         }
 
-        // Update audit record
         razorpayPaymentRepository.findByRazorpayOrderId(req.getRazorpayOrderId()).ifPresent(payment -> {
             payment.setRazorpayPaymentId(req.getRazorpayPaymentId());
             payment.setRazorpaySignature(req.getRazorpaySignature());
@@ -156,14 +150,13 @@ public class PaymentService {
 
     @Transactional
     public void processWebhook(String payload, String signatureHeader) {
-        // Verify webhook authenticity using webhook secret
+        
         boolean isValid = verifyWebhookSignature(payload, signatureHeader, razorpayWebhookSecret);
         if (!isValid) {
             log.warn("Invalid Razorpay webhook signature");
             throw new RuntimeException("Invalid webhook signature, HMAC verification failed");
         }
 
-        // Redis Idempotency Check using webhook signature as unique key
         String idempotencyKey = "webhook_processed:" + signatureHeader;
         boolean isNew = true;
         try {
@@ -199,7 +192,7 @@ public class PaymentService {
         String method = paymentEntity.optString("method", "unknown");
 
         orderRepository.findByRazorpayOrderId(rzpOrderId).ifPresent(order -> {
-            // Idempotency: only CONFIRM if not already paid
+            
             if (order.getPaymentStatus() != PaymentStatus.PAID) {
                 order.setPaymentStatus(PaymentStatus.PAID);
                 order.setPaymentRef(rzpPaymentId);
@@ -212,7 +205,6 @@ public class PaymentService {
                 log.info("Webhook marked order {} as PAID (payment captured)", order.getOrderUuid());
             }
 
-            // Update audit record
             razorpayPaymentRepository.findByRazorpayOrderId(rzpOrderId).ifPresent(payment -> {
                 payment.setRazorpayPaymentId(rzpPaymentId);
                 payment.setMethod(method);
@@ -237,7 +229,6 @@ public class PaymentService {
                     log.info("Webhook marked order {} as FAILED", order.getOrderUuid());
                 }
 
-                // Update audit record
                 razorpayPaymentRepository.findByRazorpayOrderId(rzpOrderId).ifPresent(payment -> {
                     payment.setRazorpayPaymentId(rzpPaymentId);
                     payment.setStatus(RazorpayPaymentStatus.FAILED);
@@ -299,7 +290,7 @@ public class PaymentService {
 
         try {
             JSONObject refundRequest = new JSONObject();
-            // Refund amount in paisa
+            
             refundRequest.put("amount", refundAmount.multiply(BigDecimal.valueOf(100)).intValue());
             refundRequest.put("speed", "optimum");
 
@@ -308,7 +299,6 @@ public class PaymentService {
             notes.put("swiftcart_order", orderUuid);
             refundRequest.put("notes", notes);
 
-            // Initiate refund using Razorpay client against the original payment_id
             Refund refund = razorpayClient.payments.refund(order.getPaymentRef(), refundRequest);
             String refundId = refund.get("id");
             String refundStatus = refund.get("status");
@@ -317,7 +307,6 @@ public class PaymentService {
             order.setRefundId(refundId);
             orderRepository.save(order);
 
-            // Update audit record
             razorpayPaymentRepository.findByRazorpayOrderId(order.getRazorpayOrderId()).ifPresent(payment -> {
                 payment.setRefundId(refundId);
                 payment.setStatus(RazorpayPaymentStatus.REFUNDED);
@@ -333,7 +322,6 @@ public class PaymentService {
         }
     }
 
-    // Cryptographic signature helpers
     private String calculateHmacSha256(String data, String secret) {
         try {
             Mac sha256Hmac = Mac.getInstance("HmacSHA256");

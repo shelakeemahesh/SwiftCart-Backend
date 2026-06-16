@@ -228,8 +228,7 @@ public class ChatbotController {
         }
         User user = getUserFromPrincipal(principal);
         String uuid = request.getOrderId();
-        
-        // Find full order UUID if the user passed the 8-char short abbreviation
+
         if (uuid != null && uuid.length() == 8) {
             final String target = uuid;
             List<Order> matching = orderRepository.findByUserId(user.getId(), PageRequest.of(0, 100))

@@ -83,7 +83,7 @@ public class S3Service {
             try (FileOutputStream fos = new FileOutputStream(target)) {
                 fos.write(content);
                 log.info("Saved image locally to: {}", target.getAbsolutePath());
-                // Return a mock local URL
+                
                 return "http://localhost:8080/uploads/" + uniqueFilename;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to save image locally", e);
@@ -94,7 +94,7 @@ public class S3Service {
                         .bucket(bucketName)
                         .key(uniqueFilename)
                         .contentType(contentType)
-                        .acl(ObjectCannedACL.PUBLIC_READ) // Or standard public read configurations
+                        .acl(ObjectCannedACL.PUBLIC_READ) 
                         .build();
 
                 s3Client.putObject(putObjectRequest, RequestBody.fromBytes(content));

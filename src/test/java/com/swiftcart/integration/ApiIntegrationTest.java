@@ -29,7 +29,7 @@ public class ApiIntegrationTest {
 
     @Test
     void testCustomerRegistrationFlow() throws Exception {
-        // 1. Register a new customer
+        
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setName("Test Customer");
         registerRequest.setEmail("test_integration_customer@swiftcart.com");
@@ -42,14 +42,11 @@ public class ApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("User registered successfully. Please verify your phone number via OTP."));
 
-        // 2. Trigger Send OTP
         mockMvc.perform(post("/api/v1/auth/send-otp")
                 .param("phone", "9876543210"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("OTP sent successfully to phone 9876543210"));
 
-        // We cannot easily extract OTP from DB in MockMvc without repository access, 
-        // but the python script did this. We will test the API structural endpoints here.
     }
 
     @Test

@@ -108,7 +108,7 @@ public class AdminController {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         p.setActive(false);
-        // Log reason
+        
         return ResponseEntity.ok(ApiResponse.success(productService.saveProduct(p)));
     }
 
@@ -187,7 +187,7 @@ public class AdminController {
     @GetMapping("/flash-sales")
     public ResponseEntity<ApiResponse<List<FlashSale>>> listAllFlashSales() {
         List<FlashSale> sales = flashSaleRepository.findAll();
-        // Fully load the lazily-fetched Product relation to prevent serialization errors
+        
         sales.forEach(fs -> {
             if (fs.getProduct() != null) {
                 fs.getProduct().getName();
@@ -209,8 +209,7 @@ public class AdminController {
             Principal principal,
             @RequestParam("file") MultipartFile file) throws IOException {
         String jobId = UUID.randomUUID().toString();
-        
-        // Find admin user ID to associate as seller or just generic seller ID
+
         User admin = com.swiftcart.security.SecurityUtil.getUserFromPrincipal(principal, userRepository);
 
         productService.processCsvImport(jobId, file.getBytes(), admin.getId());

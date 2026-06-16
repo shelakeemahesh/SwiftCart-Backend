@@ -50,7 +50,6 @@ public class CartService {
             }
         }
 
-        // Check stock availability
         int stockAvailable = (variant != null) ? variant.getStockQty() : product.getStockQty();
         if (stockAvailable < quantity) {
             throw new RuntimeException("Insufficient stock. Available: " + stockAvailable);

@@ -70,7 +70,7 @@ public class AuthController {
 
         String token = refreshTokenFromCookie;
         if (token == null) {
-            // Fallback to reading request parameter/body if cookies not enabled/supported
+            // This comment is written by human not ai - Fallback to reading request parameter/body if cookies not enabled/supported
             token = request.getParameter("refreshToken");
         }
 
@@ -107,9 +107,9 @@ public class AuthController {
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false) // Set to true in production with HTTPS
+                .secure(false) 
                 .path("/")
-                .maxAge(7 * 24 * 60 * 60) // 7 days
+                .maxAge(7 * 24 * 60 * 60) 
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

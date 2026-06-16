@@ -37,7 +37,6 @@ public class WishlistItem {
 
     public WishlistItem() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -50,7 +49,6 @@ public class WishlistItem {
     public LocalDateTime getAddedAt() { return addedAt; }
     public void setAddedAt(LocalDateTime addedAt) { this.addedAt = addedAt; }
 
-    // Builder
     public static WishlistItemBuilder builder() {
         return new WishlistItemBuilder();
     }

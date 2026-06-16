@@ -48,8 +48,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-            // If Redis is down, we log and fall back (allow request) so that the application remains available.
-            // In a production setup, we might fall back or raise an alert.
+
         }
 
         filterChain.doFilter(request, response);

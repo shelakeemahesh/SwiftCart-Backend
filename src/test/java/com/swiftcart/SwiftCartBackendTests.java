@@ -10,6 +10,6 @@ class SwiftCartBackendTests {
 
     @Test
     void contextLoads() {
-        // Simple sanity check to verify application context boot configuration
+        
     }
 }

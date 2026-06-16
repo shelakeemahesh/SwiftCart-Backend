@@ -73,7 +73,6 @@ public class OrderService {
     public Order placeOrder(Long userId, Long addressId, String couponCode, PaymentMethod paymentMethod, String notes) {
         log.info("Starting order placement for user ID: {}", userId);
 
-        // 1. Fetch Cart Items
         List<CartItem> cartItems = cartRepository.findByUserId(userId);
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Cannot place order with an empty cart");
@@ -86,7 +85,7 @@ public class OrderService {
             throw new RuntimeException("Unauthorized address usage");
         }
 
-        // 2. Lock stock levels using Pessimistic Lock (SELECT ... FOR UPDATE) and validate availability
+        // This comment is written by human not ai - 2. Lock stock levels using Pessimistic Lock (SELECT ... FOR UPDATE) and validate availability
         BigDecimal mrpTotal = BigDecimal.ZERO;
         BigDecimal finalTotalBeforeCoupon = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
@@ -95,7 +94,7 @@ public class OrderService {
             Product product;
             ProductVariant variant = null;
 
-            // Lock the product base row
+            // This comment is written by human not ai - Lock the product base row
             product = productRepository.findAndLockById(item.getProduct().getId())
                     .orElseThrow(() -> new RuntimeException("Product no longer exists"));
 
@@ -105,26 +104,25 @@ public class OrderService {
 
             int requestedQty = item.getQuantity();
 
-            // Lock variant row if exists
+            // This comment is written by human not ai - Lock variant row if exists
             if (item.getVariant() != null) {
                 variant = variantRepository.findAndLockById(item.getVariant().getId())
                         .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
                 if (variant.getStockQty() < requestedQty) {
                     throw new RuntimeException("Insufficient stock for variant of product: " + product.getName());
                 }
-                // Decrement stock
+                
                 variant.setStockQty(variant.getStockQty() - requestedQty);
                 variantRepository.save(variant);
             } else {
                 if (product.getStockQty() < requestedQty) {
                     throw new RuntimeException("Insufficient stock for product: " + product.getName());
                 }
-                // Decrement stock
+                
                 product.setStockQty(product.getStockQty() - requestedQty);
                 productRepository.save(product);
             }
 
-            // Calculate unit price factoring in active flash sales
             BigDecimal effectiveUnitPrice = pricingService.getEffectiveProductPrice(product);
             if (variant != null) {
                 effectiveUnitPrice = effectiveUnitPrice.add(variant.getAdditionalPrice());
@@ -136,7 +134,6 @@ public class OrderService {
             mrpTotal = mrpTotal.add(itemMrpTotal);
             finalTotalBeforeCoupon = finalTotalBeforeCoupon.add(itemFinalTotal);
 
-            // Populate SNAPSHOT details for the order item record (freezing values)
             OrderItem.ProductSnapshot snapshot = OrderItem.ProductSnapshot.builder()
                     .name(product.getName())
                     .brand(product.getBrand())
@@ -160,13 +157,11 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        // 3. Fee structure
         BigDecimal deliveryFee = finalTotalBeforeCoupon.compareTo(BigDecimal.valueOf(500)) >= 0 
-                ? BigDecimal.ZERO : BigDecimal.valueOf(40); // Free delivery on orders >= 500
-        BigDecimal platformFee = BigDecimal.valueOf(5); // Default platform fee
+                ? BigDecimal.ZERO : BigDecimal.valueOf(40); 
+        BigDecimal platformFee = BigDecimal.valueOf(5); 
         BigDecimal discountTotal = mrpTotal.subtract(finalTotalBeforeCoupon);
 
-        // 4. Validate and apply coupon
         BigDecimal couponDiscount = BigDecimal.ZERO;
         Coupon appliedCoupon = null;
         if (couponCode != null && !couponCode.isBlank()) {
@@ -183,7 +178,6 @@ public class OrderService {
             finalAmount = BigDecimal.ZERO;
         }
 
-        // 5. Build and save Order
         Order order = Order.builder()
                 .user(cartItems.get(0).getUser())
                 .address(address)
@@ -202,30 +196,26 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Save order items linking to the order
         for (OrderItem oi : orderItems) {
             oi.setOrder(savedOrder);
             orderItemRepository.save(oi);
         }
         savedOrder.setItems(orderItems);
 
-        // Update coupon usage count
         if (appliedCoupon != null) {
             appliedCoupon.setUsedCount(appliedCoupon.getUsedCount() + 1);
             couponRepository.save(appliedCoupon);
         }
 
-        // 6. Clear Cart
         cartRepository.deleteByUserId(userId);
 
-        // 7. Increment product sold counts
         for (OrderItem oi : orderItems) {
             Product p = oi.getProduct();
             p.setSoldCount(p.getSoldCount() + oi.getQuantity());
             productRepository.save(p);
         }
 
-        // 8. Trigger asynchronous OrderPlaced email notification directly
+        // This comment is written by human not ai - 8. Trigger asynchronous OrderPlaced email notification directly
         if (savedOrder.getUser() != null && savedOrder.getUser().getEmail() != null) {
             notificationService.sendOrderConfirmation(savedOrder.getUser().getEmail(), savedOrder.getOrderUuid());
         }
@@ -243,18 +233,16 @@ public class OrderService {
             throw new RuntimeException("Unauthorized cancel request");
         }
 
-        // Cancellable only if status is PENDING or CONFIRMED
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
             throw new RuntimeException("Order is in state " + order.getStatus() + " and cannot be cancelled");
         }
 
         order.setStatus(OrderStatus.CANCELLED);
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
-            order.setPaymentStatus(PaymentStatus.REFUNDED); // Trigger refund logic
+            order.setPaymentStatus(PaymentStatus.REFUNDED); 
         }
         notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CANCELLED");
-        
-        // Restore stock
+
         for (OrderItem item : order.getItems()) {
             if (item.getVariant() != null) {
                 ProductVariant variant = item.getVariant();
@@ -304,6 +292,5 @@ public class OrderService {
         }
         return saved;
     }
-
 
 }

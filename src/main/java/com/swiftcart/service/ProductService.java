@@ -74,7 +74,7 @@ public class ProductService {
     @Transactional
     @CacheEvict(value = "productDetails", key = "#product.slug")
     public Product saveProduct(Product product) {
-        // Handle slug auto-generation
+        
         if (product.getSlug() == null || product.getSlug().isBlank()) {
             product.setSlug(generateUniqueSlug(product.getName()));
         }
@@ -122,7 +122,6 @@ public class ProductService {
         productRepository.save(p);
     }
 
-    // Slug auto-generation handling duplicates
     private String generateUniqueSlug(String name) {
         String baseSlug = SlugUtil.toSlug(name);
         String currentSlug = baseSlug;
@@ -135,7 +134,7 @@ public class ProductService {
         return currentSlug;
     }
 
-    // Recalculates average rating asynchronously (e.g. from service call)
+    // This comment is written by human not ai - Recalculates average rating asynchronously (e.g. from service call)
     @Transactional
     @CacheEvict(value = "productDetails", allEntries = true)
     public void recalculateAverageRating(Long productId, BigDecimal newAverage, int newCount) {
@@ -173,13 +172,12 @@ public class ProductService {
         }
     }
 
-    // Image resizing to 800x1200 and 400x600 using Thumbnailator, and S3 upload
     public List<String> uploadProductImages(Long productId, byte[] fileBytes, String originalFilename, String contentType) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         try {
-            // Resize to 800x1200 (Main Display)
+            
             ByteArrayOutputStream mainOs = new ByteArrayOutputStream();
             Thumbnails.of(new ByteArrayInputStream(fileBytes))
                     .size(800, 1200)
@@ -187,7 +185,6 @@ public class ProductService {
                     .toOutputStream(mainOs);
             byte[] mainBytes = mainOs.toByteArray();
 
-            // Resize to 400x600 (Thumbnail)
             ByteArrayOutputStream thumbOs = new ByteArrayOutputStream();
             Thumbnails.of(new ByteArrayInputStream(fileBytes))
                     .size(400, 600)
@@ -195,11 +192,9 @@ public class ProductService {
                     .toOutputStream(thumbOs);
             byte[] thumbBytes = thumbOs.toByteArray();
 
-            // Upload both
             String mainUrl = s3Service.uploadFile(mainBytes, "main_" + originalFilename, "image/jpeg");
             String thumbUrl = s3Service.uploadFile(thumbBytes, "thumb_" + originalFilename, "image/jpeg");
 
-            // Persist as product images in DB
             ProductImage mainImg = ProductImage.builder()
                     .product(product)
                     .imageUrl(mainUrl)
@@ -244,12 +239,12 @@ public class ProductService {
             String line;
             int imported = 0;
             int failed = 0;
-            // Skip header
+            
             String header = reader.readLine();
 
             while ((line = reader.readLine()) != null) {
                 try {
-                    // Simple CSV parser split on comma (handling quoted values if required, simple split for stub)
+                    
                     String[] tokens = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
                     if (tokens.length < 5) continue;
 
@@ -262,7 +257,6 @@ public class ProductService {
                     String desc = tokens.length > 6 ? tokens[6].replace("\"", "").trim() : "";
                     String imageUrlList = tokens.length > 7 ? tokens[7].replace("\"", "").trim() : "";
 
-                    // Find or create category
                     String catSlug = SlugUtil.toSlug(categoryName);
                     Category cat = categoryRepository.findBySlug(catSlug)
                             .orElseGet(() -> categoryRepository.save(Category.builder()

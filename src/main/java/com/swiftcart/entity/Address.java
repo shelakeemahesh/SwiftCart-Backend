@@ -52,10 +52,8 @@ public class Address {
         createdAt = LocalDateTime.now();
     }
 
-    // Default Constructor
     public Address() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -92,7 +90,6 @@ public class Address {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    // Builder
     public static AddressBuilder builder() {
         return new AddressBuilder();
     }

@@ -70,7 +70,7 @@ public class SecurityConfig {
                 )
             )
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
+                
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh-token", "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/register/seller").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
@@ -83,10 +83,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/chat/return-policy").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/chat/message").permitAll()
                 .requestMatchers("/api/v1/chat/cancel-order").authenticated()
-                // Role-restricted routes
+                
                 .requestMatchers("/api/v1/seller/**").hasAnyRole("SELLER", "ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // General authenticated requests (Restricted to Customer and Admin)
+                
                 .requestMatchers("/api/v1/users/**").hasAnyRole("CUSTOMER", "ADMIN")
                 .requestMatchers("/api/v1/cart/**").hasAnyRole("CUSTOMER", "ADMIN")
                 .requestMatchers("/api/v1/orders/**").hasAnyRole("CUSTOMER", "ADMIN")

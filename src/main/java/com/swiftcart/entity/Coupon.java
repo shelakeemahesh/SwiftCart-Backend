@@ -46,7 +46,6 @@ public class Coupon {
 
     public Coupon() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -80,7 +79,6 @@ public class Coupon {
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
 
-    // Builder
     public static CouponBuilder builder() {
         return new CouponBuilder();
     }

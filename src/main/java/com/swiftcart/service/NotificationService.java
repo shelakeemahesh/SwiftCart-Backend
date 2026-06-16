@@ -101,6 +101,6 @@ public class NotificationService {
     @Async
     public void sendPushNotification(String userId, String title, String body) {
         log.info("Sending FCM Push Notification to user {}: {} - {}", userId, title, body);
-        // In production: Integrate Firebase Cloud Messaging SDK
+        
     }
 }

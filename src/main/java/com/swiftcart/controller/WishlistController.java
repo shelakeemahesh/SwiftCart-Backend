@@ -44,7 +44,6 @@ public class WishlistController {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Check if already in wishlist
         if (wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId)) {
             throw new RuntimeException("Product is already in your wishlist");
         }

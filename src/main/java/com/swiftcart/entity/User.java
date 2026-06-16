@@ -57,7 +57,6 @@ public class User {
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
 
-    // Seller-specific fields
     @Column(name = "business_name")
     private String businessName;
 
@@ -90,10 +89,8 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    // Default Constructor
     public User() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -157,7 +154,6 @@ public class User {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    // Builder Pattern
     public static UserBuilder builder() {
         return new UserBuilder();
     }

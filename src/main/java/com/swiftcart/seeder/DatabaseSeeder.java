@@ -23,7 +23,6 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.util.*;
 
-
 @Component
 @Profile({"dev", "prod"})
 public class DatabaseSeeder implements CommandLineRunner {
@@ -38,7 +37,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     
     private static final Map<String, String> SUBCAT_TO_ROOT = new HashMap<>();
     static {
-        // Electronics
+        
         SUBCAT_TO_ROOT.put("Camera Accessories", "Electronics");
         SUBCAT_TO_ROOT.put("Laptop Accessories", "Electronics");
         SUBCAT_TO_ROOT.put("Mobile Accessories", "Electronics");
@@ -47,7 +46,6 @@ public class DatabaseSeeder implements CommandLineRunner {
         SUBCAT_TO_ROOT.put("Network Components", "Electronics");
         SUBCAT_TO_ROOT.put("NEWGEN TECH EO-HS3303 218 Wired Headset (White)", "Electronics");
 
-        // Fashion
         SUBCAT_TO_ROOT.put("Bags", "Fashion");
         SUBCAT_TO_ROOT.put("Men's Clothing", "Fashion");
         SUBCAT_TO_ROOT.put("Women's Clothing", "Fashion");
@@ -73,37 +71,31 @@ public class DatabaseSeeder implements CommandLineRunner {
         SUBCAT_TO_ROOT.put("Breakbounce Men's Vest", "Fashion");
         SUBCAT_TO_ROOT.put("Klaur Melbourne Bellies", "Fashion");
 
-        // Toys
         SUBCAT_TO_ROOT.put("Action Figures", "Toys");
         SUBCAT_TO_ROOT.put("Baby & Kids Gifts", "Toys");
         SUBCAT_TO_ROOT.put("Diapering & Potty Training", "Toys");
         SUBCAT_TO_ROOT.put("Infant Wear", "Toys");
         SUBCAT_TO_ROOT.put("Kids' Clothing", "Toys");
 
-        // Books
         SUBCAT_TO_ROOT.put("College Supplies", "Books");
         SUBCAT_TO_ROOT.put("Pens", "Books");
         SUBCAT_TO_ROOT.put("School Supplies", "Books");
 
-        // Beauty
         SUBCAT_TO_ROOT.put("Body and Skin Care", "Beauty");
         SUBCAT_TO_ROOT.put("Hair Care", "Beauty");
         SUBCAT_TO_ROOT.put("Makeup", "Beauty");
         SUBCAT_TO_ROOT.put("Fragrances", "Beauty");
         SUBCAT_TO_ROOT.put("Personal Care Appliances", "Beauty");
 
-        // Sports
         SUBCAT_TO_ROOT.put("Outdoor & Adventure", "Sports");
         SUBCAT_TO_ROOT.put("Car Accessories", "Sports");
         SUBCAT_TO_ROOT.put("Car & Bike Accessories", "Sports");
         SUBCAT_TO_ROOT.put("Gking Hand Stiched Steering Cover For Maruti Ert...", "Sports");
 
-        // Grocery
         SUBCAT_TO_ROOT.put("Combos and Kits", "Grocery");
         SUBCAT_TO_ROOT.put("Health Care", "Grocery");
         SUBCAT_TO_ROOT.put("Housekeeping & Laundry", "Grocery");
 
-        // Home
         SUBCAT_TO_ROOT.put("Accessories", "Home");
         SUBCAT_TO_ROOT.put("Accessories & Spare parts", "Home");
         SUBCAT_TO_ROOT.put("Bar & Glassware", "Home");
@@ -147,8 +139,7 @@ public class DatabaseSeeder implements CommandLineRunner {
         }
         
         log.info("Starting database seed from CSV...");
-        
-        // 1. Create a dummy Seller User if one doesn't exist
+
         User defaultSeller = userRepository.findByEmail("seller_seed@swiftcart.com").orElseGet(() -> {
             User seller = User.builder()
                 .name("Seed Seller")
@@ -161,7 +152,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             return userRepository.save(seller);
         });
 
-        // 2. Insert Root Categories
         Map<String, Category> rootCategories = new HashMap<>();
         for (int i = 0; i < ROOT_CATEGORIES.length; i++) {
             String rootName = ROOT_CATEGORIES[i];
@@ -177,7 +167,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             rootCategories.put(rootName, root);
         }
 
-        // 3. Process CSV
         ClassPathResource resource = new ClassPathResource("data/flipkart_products_formatted.csv");
         if (!resource.exists()) {
             log.warn("Seed file flipkart_products_formatted.csv not found in classpath. Seeding aborted.");
@@ -201,11 +190,9 @@ public class DatabaseSeeder implements CommandLineRunner {
                 String desc = line[6];
                 String imageUrlList = line[7];
 
-                // Resolve root category
                 String rootName = SUBCAT_TO_ROOT.getOrDefault(subcatName, "Home");
                 Category parent = rootCategories.get(rootName);
 
-                // Find or create subcategory
                 Category subCat = subCategories.computeIfAbsent(subcatName, k -> {
                     return categoryRepository.findByNameAndParent(subcatName, parent).orElseGet(() -> {
                         Category cat = new Category();
@@ -217,7 +204,6 @@ public class DatabaseSeeder implements CommandLineRunner {
                     });
                 });
 
-                // Create Product
                 Product product = new Product();
                 product.setName(name);
                 product.setBrand(brand);
@@ -233,7 +219,6 @@ public class DatabaseSeeder implements CommandLineRunner {
                 
                 product = productRepository.save(product);
 
-                // Create Images
                 if (imageUrlList != null && !imageUrlList.isEmpty()) {
                     String[] urls = imageUrlList.split("\\|");
                     List<ProductImage> images = new ArrayList<>();

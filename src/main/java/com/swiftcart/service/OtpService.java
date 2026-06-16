@@ -16,7 +16,7 @@ public class OtpService {
     }
 
     public String generateOtp(String phone) {
-        // Check rate limiting (max 3 OTP requests per phone per hour)
+        
         String rateKey = "otp:rate:" + phone;
         String countStr = redisService.get(rateKey);
         int count = countStr == null ? 0 : Integer.parseInt(countStr);
@@ -25,13 +25,10 @@ public class OtpService {
             throw new RuntimeException("OTP request limit exceeded for this hour. Maximum 3 requests allowed.");
         }
 
-        // Increment count
         redisService.incrementAndExpire(rateKey, Duration.ofHours(1));
 
-        // Generate 6 digit OTP
         String otp = String.format("%06d", random.nextInt(1000000));
 
-        // Store with TTL 10 minutes
         String otpKey = "otp:" + phone;
         redisService.set(otpKey, otp, Duration.ofMinutes(10));
 

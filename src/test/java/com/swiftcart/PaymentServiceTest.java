@@ -91,8 +91,7 @@ public class PaymentServiceTest {
     public void testVerifyPaymentSignature_Success() {
         String razorpayOrderId = "order_test123";
         String razorpayPaymentId = "pay_test456";
-        
-        // Compute correct signature using the configured secret
+
         String secret = razorpayKeySecret;
         String payload = razorpayOrderId + "|" + razorpayPaymentId;
         String signature = calculateHmacSha256(payload, secret);

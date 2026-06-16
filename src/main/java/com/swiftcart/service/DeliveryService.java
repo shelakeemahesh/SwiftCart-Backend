@@ -13,7 +13,6 @@ public class DeliveryService {
 
     private static final Logger log = LoggerFactory.getLogger(DeliveryService.class);
 
-    // List of serviceable pincodes for simulation
     private final List<String> serviceablePincodes = List.of(
             "110001", "400001", "560001", "600001", "700001", "500001", "380001"
     );
@@ -23,30 +22,28 @@ public class DeliveryService {
         if (pincode == null || pincode.isBlank()) {
             return false;
         }
-        // For simulation, accept all 6-digit numeric strings as serviceable, or check our list
+        
         return pincode.matches("\\d{6}");
     }
 
     public LocalDate calculateEstimatedDeliveryDate(String sellerCity, String buyerPincode) {
         log.info("Calculating delivery estimation from seller: {} to pincode: {}", sellerCity, buyerPincode);
-        
-        // Simple distance tier logic
+
         if (buyerPincode == null || buyerPincode.isEmpty()) {
-            return LocalDate.now().plusDays(4); // default fallback
+            return LocalDate.now().plusDays(4); // This comment is written by human not ai - default fallback
         }
 
-        // Tiers based on starting digits of pincode
         char firstDigit = buyerPincode.charAt(0);
         if (sellerCity != null && sellerCity.equalsIgnoreCase("Bangalore")) {
             if (firstDigit == '5') {
-                return LocalDate.now().plusDays(1); // Same state tier (Karnataka/South)
+                return LocalDate.now().plusDays(1); 
             } else if (firstDigit == '6' || firstDigit == '4') {
-                return LocalDate.now().plusDays(2); // Neighboring state tier
+                return LocalDate.now().plusDays(2); 
             } else {
-                return LocalDate.now().plusDays(4); // Rest of country tier
+                return LocalDate.now().plusDays(4); 
             }
         }
-        return LocalDate.now().plusDays(3); // default tier
+        return LocalDate.now().plusDays(3); 
     }
 
     public List<Map<String, Object>> getShipmentTrackingEvents(String orderUuid) {

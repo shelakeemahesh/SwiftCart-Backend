@@ -31,7 +31,6 @@ public class ProductImage {
 
     public ProductImage() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -47,7 +46,6 @@ public class ProductImage {
     public int getDisplayOrder() { return displayOrder; }
     public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
 
-    // Builder
     public static ProductImageBuilder builder() {
         return new ProductImageBuilder();
     }

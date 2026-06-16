@@ -22,7 +22,6 @@ public class ProductDocument {
 
     public ProductDocument() {}
 
-    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -65,7 +64,6 @@ public class ProductDocument {
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
 
-    // Builder
     public static ProductDocumentBuilder builder() {
         return new ProductDocumentBuilder();
     }

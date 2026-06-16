@@ -41,10 +41,8 @@ public class Category {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    // Constructors
     public Category() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -69,7 +67,6 @@ public class Category {
     public boolean isActive() { return isActive != null && isActive; }
     public void setActive(Boolean active) { this.isActive = active; }
 
-    // Builder
     public static CategoryBuilder builder() {
         return new CategoryBuilder();
     }

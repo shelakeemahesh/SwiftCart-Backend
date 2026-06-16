@@ -4,10 +4,10 @@ import java.util.List;
 
 public class ChatbotResponseDTO {
     private String messageText;
-    private String type;            // "text" | "order_card" | "options"
-    private ActiveOrderDTO order;   // populated if type = order_card
-    private List<String> options;   // next quick-reply suggestions
-    private String actionUrl;       // optional redirect link
+    private String type;            
+    private ActiveOrderDTO order;   
+    private List<String> options;   
+    private String actionUrl;       
 
     public ChatbotResponseDTO() {}
 

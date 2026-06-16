@@ -25,7 +25,7 @@ public class PricingService {
     }
 
     public BigDecimal getEffectiveProductPrice(Product product) {
-        // Check active flash sales first
+        
         Optional<FlashSale> activeSale = getActiveFlashSale(product.getId());
         if (activeSale.isPresent()) {
             FlashSale sale = activeSale.get();
@@ -78,14 +78,13 @@ public class PricingService {
                 discount = orderValue;
             }
         } else if (coupon.getType() == CouponType.FREE_DELIVERY) {
-            // Handled separately on shipping fees calculation
+            
             discount = BigDecimal.ZERO; 
         }
 
         return discount;
     }
 
-    // Helper interface for counting Flash Sale sold count
     private interface FlashSaleWithSoldInfo {
         default int getSoldValue() {
             return 0;

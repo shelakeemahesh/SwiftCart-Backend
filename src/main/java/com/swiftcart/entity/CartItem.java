@@ -44,7 +44,6 @@ public class CartItem {
 
     public CartItem() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -63,7 +62,6 @@ public class CartItem {
     public LocalDateTime getAddedAt() { return addedAt; }
     public void setAddedAt(LocalDateTime addedAt) { this.addedAt = addedAt; }
 
-    // Builder
     public static CartItemBuilder builder() {
         return new CartItemBuilder();
     }

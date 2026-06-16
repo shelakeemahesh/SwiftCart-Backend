@@ -38,7 +38,6 @@ public class ProductVariant {
 
     public ProductVariant() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -60,7 +59,6 @@ public class ProductVariant {
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
 
-    // Builder
     public static ProductVariantBuilder builder() {
         return new ProductVariantBuilder();
     }

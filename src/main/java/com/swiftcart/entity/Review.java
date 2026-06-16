@@ -63,7 +63,6 @@ public class Review {
 
     public Review() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -97,7 +96,6 @@ public class Review {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    // Builder
     public static ReviewBuilder builder() {
         return new ReviewBuilder();
     }

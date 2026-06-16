@@ -40,8 +40,6 @@ public class OrderTrackingDTO {
     public String getEstimatedDelivery() { return estimatedDelivery; }
     public void setEstimatedDelivery(String estimatedDelivery) { this.estimatedDelivery = estimatedDelivery; }
 
-    // --- Nested DTO Classes ---
-
     public static class TrackingItemDTO {
         private String name;
         private int qty;

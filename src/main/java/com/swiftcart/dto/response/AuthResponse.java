@@ -37,7 +37,6 @@ public class AuthResponse {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    // Builder for AuthResponse
     public static AuthResponseBuilder builder() {
         return new AuthResponseBuilder();
     }

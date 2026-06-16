@@ -80,7 +80,6 @@ public class AdminControllerIntegrationTest {
         addressRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 1. Create a regular customer user
         testUser = userRepository.save(User.builder()
                 .phone("9876543210")
                 .email("customer@swiftcart.com")
@@ -89,14 +88,12 @@ public class AdminControllerIntegrationTest {
                 .isVerified(true)
                 .build());
 
-        // 2. Create category
         testCategory = categoryRepository.save(Category.builder()
                 .name("Electronics")
                 .slug("electronics")
                 .isActive(true)
                 .build());
 
-        // 3. Create a seller
         User seller = userRepository.save(User.builder()
                 .phone("9876543211")
                 .email("seller@swiftcart.com")
@@ -105,7 +102,6 @@ public class AdminControllerIntegrationTest {
                 .isVerified(true)
                 .build());
 
-        // 4. Create product
         testProduct = productRepository.save(Product.builder()
                 .seller(seller)
                 .category(testCategory)
@@ -116,10 +112,9 @@ public class AdminControllerIntegrationTest {
                 .basePrice(BigDecimal.valueOf(100.00))
                 .mrp(BigDecimal.valueOf(120.00))
                 .stockQty(10)
-                .isActive(false) // requires approval
+                .isActive(false) 
                 .build());
 
-        // 5. Create coupon
         testCoupon = couponRepository.save(Coupon.builder()
                 .code("WELCOME10")
                 .type(CouponType.PERCENT)

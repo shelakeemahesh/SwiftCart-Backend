@@ -25,7 +25,7 @@ public class CategoryService {
 
     private void initializeSubCategories(Category category) {
         if (category.getSubCategories() != null) {
-            category.getSubCategories().size(); // trigger lazy load
+            category.getSubCategories().size(); 
             category.getSubCategories().forEach(this::initializeSubCategories);
         }
     }

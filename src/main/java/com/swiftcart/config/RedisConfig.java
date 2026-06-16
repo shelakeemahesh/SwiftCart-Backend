@@ -49,16 +49,13 @@ public class RedisConfig implements org.springframework.cache.annotation.Caching
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         GenericJackson2JsonRedisSerializer serializer = createJacksonSerializer();
-        
-        // Default configuration
+
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
                 .disableCachingNullValues()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
-        // Spec-specific TTL overrides:
-        // product detail (30min TTL), category tree (60min TTL), trending products (5min TTL), search suggestions (15min TTL)
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
         
         cacheConfigurations.put("productDetails", defaultConfig.entryTtl(Duration.ofMinutes(30)));

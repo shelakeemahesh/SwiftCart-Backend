@@ -68,7 +68,6 @@ public class ConcurrentOrderLockTest {
         customers.clear();
         addresses.clear();
 
-        // 1. Create seller
         seller = userRepository.save(User.builder()
                 .phone("9999999990")
                 .email("seller@swiftcart.com")
@@ -77,7 +76,6 @@ public class ConcurrentOrderLockTest {
                 .isVerified(true)
                 .build());
 
-        // 2. Create 10 distinct customers and addresses
         for (int i = 0; i < 10; i++) {
             User customer = userRepository.save(User.builder()
                     .phone("999999999" + (i + 1))
@@ -103,14 +101,12 @@ public class ConcurrentOrderLockTest {
             addresses.add(address);
         }
 
-        // Create category
         Category category = categoryRepository.save(Category.builder()
                 .name("Electronics")
                 .slug("electronics")
                 .isActive(true)
                 .build());
 
-        // 4. Create product with low stock (e.g., 5 items)
         product = productRepository.save(Product.builder()
                 .seller(seller)
                 .category(category)
@@ -127,7 +123,7 @@ public class ConcurrentOrderLockTest {
 
     @Test
     public void testConcurrentOrderPlacementPessimisticLock() throws InterruptedException {
-        // Set up 10 concurrent requests trying to buy 1 item each (total 10 items requested, but only 5 in stock)
+        
         int threadCount = 10;
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(1);
@@ -139,10 +135,9 @@ public class ConcurrentOrderLockTest {
             final User threadCustomer = customers.get(i);
             final Address threadAddress = addresses.get(i);
             tasks.add(() -> {
-                latch.await(); // wait for the start signal
+                latch.await(); 
                 try {
-                    // Populate cart for customer
-                    // Normally placing order pulls from cart, so we add 1 item to cart before checking out
+
                     CartItem cartItem = cartRepository.save(CartItem.builder()
                             .user(threadCustomer)
                             .product(product)
@@ -172,13 +167,11 @@ public class ConcurrentOrderLockTest {
             futures.add(executorService.submit(task));
         }
 
-        // Release the latch to start all threads concurrently
         latch.countDown();
 
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.SECONDS);
 
-        // Fetch product again to assert remaining stock is exactly 0
         Product reloadedProduct = productRepository.findById(product.getId()).orElseThrow();
 
         System.out.println("Concurrent Order Placement Results:");
@@ -186,7 +179,6 @@ public class ConcurrentOrderLockTest {
         System.out.println("Failed placements: " + failureCount.get());
         System.out.println("Remaining stock: " + reloadedProduct.getStockQty());
 
-        // Assert that exactly 5 orders succeeded (since stock limit was 5) and remaining stock is 0
         Assertions.assertEquals(5, successCount.get(), "Only 5 placements should succeed");
         Assertions.assertEquals(5, failureCount.get(), "5 placements should fail due to stock depletion");
         Assertions.assertEquals(0, reloadedProduct.getStockQty(), "Remaining stock should be exactly 0");

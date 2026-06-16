@@ -99,7 +99,6 @@ public class OrderController {
         User user = getUserFromPrincipal(principal);
         Order order = orderService.getOrderDetail(orderUuid);
 
-        // Generating a lightweight valid PDF header structure in memory containing order info
         String invoiceText = "%PDF-1.4\n" +
                 "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
                 "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n" +

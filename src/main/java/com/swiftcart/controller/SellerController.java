@@ -53,14 +53,12 @@ public class SellerController {
         User seller = getUserFromPrincipal(principal);
         List<Product> products = productRepository.findBySellerId(seller.getId(), PageRequest.of(0, 100));
 
-        // Sales summary logic (simulation)
         BigDecimal totalRevenue = products.stream()
                 .map(p -> p.getBasePrice().multiply(BigDecimal.valueOf(p.getSoldCount())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         int totalUnitsSold = products.stream().mapToInt(Product::getSoldCount).sum();
 
-        // Low stock alerts (< 5 units)
         List<Product> lowStockProducts = products.stream()
                 .filter(p -> p.getStockQty() < 5)
                 .collect(Collectors.toList());
@@ -166,7 +164,7 @@ public class SellerController {
             Principal principal,
             @PathVariable String orderUuid,
             @RequestParam String trackingId) {
-        // Update order status to DISPATCHED or SHIPPED
+        
         orderService.updateOrderStatusBySellerOrAdmin(orderUuid, OrderStatus.DISPATCHED);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "message", "Order marked as shipped",

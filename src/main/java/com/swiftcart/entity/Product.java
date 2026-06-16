@@ -115,7 +115,6 @@ public class Product {
                 .divide(mrp, 2, java.math.RoundingMode.HALF_UP);
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -182,7 +181,6 @@ public class Product {
     public Set<ProductVariant> getVariants() { return variants; }
     public void setVariants(Set<ProductVariant> variants) { this.variants = variants; }
 
-    // Builder
     public static ProductBuilder builder() {
         return new ProductBuilder();
     }
