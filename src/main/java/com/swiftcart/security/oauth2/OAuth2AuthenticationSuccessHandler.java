@@ -34,7 +34,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        String targetUrl = determineTargetUrl(request, response, authentication);
+        String targetUrl;
+        try {
+            targetUrl = determineTargetUrl(request, response, authentication);
+        } catch (IllegalArgumentException ex) {
+            String fallbackUrl = (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
+                    ? authorizedRedirectUris.get(0)
+                    : "http://localhost:5173/oauth2/callback";
+            targetUrl = UriComponentsBuilder.fromUriString(fallbackUrl)
+                    .queryParam("error", ex.getMessage())
+                    .build().toUriString();
+        }
 
         if (response.isCommitted()) {
             logger.debug("Response has already been committed. Unable to redirect to " + targetUrl);
