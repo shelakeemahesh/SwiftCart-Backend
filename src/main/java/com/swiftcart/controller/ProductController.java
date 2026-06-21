@@ -56,59 +56,8 @@ public class ProductController {
             @RequestParam(defaultValue = "id,desc") String sort,
             @RequestParam(required = false) Long sellerId) {
 
-        String[] sortParts = sort.split(",");
-        String sortField = sortParts[0];
-        
-        if (sortField.equals("price")) {
-            sortField = "basePrice";
-        } else if (sortField.equals("rating")) {
-            sortField = "averageRating";
-        }
-        Sort sortObj = Sort.by(sortField);
-        if (sortParts.length > 1 && sortParts[1].equalsIgnoreCase("desc")) {
-            sortObj = sortObj.descending();
-        } else {
-            sortObj = sortObj.ascending();
-        }
-        Pageable pageable = PageRequest.of(page, size, sortObj);
-
-        Page<Product> result = productRepository.findAll((root, query, cb) -> {
-            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
-            predicates.add(cb.equal(root.get("isActive"), true));
-
-            if (categoryId != null) {
-                predicates.add(cb.or(
-                    cb.equal(root.get("category").get("id"), categoryId),
-                    cb.equal(root.get("category").get("parent").get("id"), categoryId)
-                ));
-            }
-            if (sellerId != null) {
-                predicates.add(cb.equal(root.get("seller").get("id"), sellerId));
-            }
-            if (brand != null && !brand.isBlank()) {
-                predicates.add(cb.equal(root.get("brand"), brand));
-            }
-            if (minPrice != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("basePrice"), java.math.BigDecimal.valueOf(minPrice)));
-            }
-            if (maxPrice != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("basePrice"), java.math.BigDecimal.valueOf(maxPrice)));
-            }
-            if (rating != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("averageRating"), java.math.BigDecimal.valueOf(rating)));
-            }
-            if (discount != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("discountPercent"), java.math.BigDecimal.valueOf(discount)));
-            }
-            if (inStock) {
-                predicates.add(cb.greaterThan(root.get("stockQty"), 0));
-            }
-
-            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
-        }, pageable);
-
-        result.getContent();
-
+        Page<Product> result = productService.listProducts(
+                categoryId, brand, minPrice, maxPrice, rating, discount, inStock, page, size, sort, sellerId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -135,24 +84,17 @@ public class ProductController {
 
     @GetMapping("/trending")
     public ResponseEntity<ApiResponse<List<Product>>> getTrendingProducts() {
-        List<Product> products = productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
-        return ResponseEntity.ok(ApiResponse.success(products));
+        return ResponseEntity.ok(ApiResponse.success(productService.getTrendingProducts()));
     }
 
     @GetMapping("/new-arrivals")
     public ResponseEntity<ApiResponse<List<Product>>> getNewArrivals() {
-        List<Product> products = productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
-        return ResponseEntity.ok(ApiResponse.success(products));
+        return ResponseEntity.ok(ApiResponse.success(productService.getNewArrivals()));
     }
 
     @GetMapping("/deals")
     public ResponseEntity<ApiResponse<List<Product>>> getFlashDeals() {
-        List<FlashSale> activeSales = flashSaleRepository.findActiveFlashSales(LocalDateTime.now());
-        List<Product> products = activeSales.stream()
-                .map(FlashSale::getProduct)
-                .filter(Product::isActive)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.success(products));
+        return ResponseEntity.ok(ApiResponse.success(productService.getFlashDeals()));
     }
 
     @GetMapping("/{id}/related")

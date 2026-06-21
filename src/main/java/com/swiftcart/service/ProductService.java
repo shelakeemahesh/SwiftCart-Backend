@@ -10,6 +10,10 @@ import com.swiftcart.repository.UserRepository;
 import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.kafka.producer.OrderEventProducer;
 import com.swiftcart.util.SlugUtil;
+import com.swiftcart.entity.FlashSale;
+import com.swiftcart.repository.FlashSaleRepository;
+import org.springframework.cache.annotation.Caching;
+import java.time.LocalDateTime;
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,7 @@ public class ProductService {
     private final RedisFallbackService redisService;
     private final OrderEventProducer orderEventProducer;
     private final SearchService searchService;
+    private final FlashSaleRepository flashSaleRepository;
 
     public ProductService(
             ProductRepository productRepository,
@@ -53,7 +58,8 @@ public class ProductService {
             ReviewRepository reviewRepository,
             RedisFallbackService redisService,
             OrderEventProducer orderEventProducer,
-            SearchService searchService) {
+            SearchService searchService,
+            FlashSaleRepository flashSaleRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
@@ -62,10 +68,118 @@ public class ProductService {
         this.redisService = redisService;
         this.orderEventProducer = orderEventProducer;
         this.searchService = searchService;
+        this.flashSaleRepository = flashSaleRepository;
     }
 
     public Page<Product> listProducts(Pageable pageable) {
         return productRepository.findAll(pageable);
+    }
+
+    @Cacheable(value = "productLists", key = "T(java.util.Objects).hash(#categoryId, #brand, #minPrice, #maxPrice, #rating, #discount, #inStock, #page, #size, #sort, #sellerId)")
+    public Page<Product> listProducts(
+            Long categoryId,
+            String brand,
+            Double minPrice,
+            Double maxPrice,
+            Double rating,
+            Double discount,
+            boolean inStock,
+            int page,
+            int size,
+            String sort,
+            Long sellerId) {
+        
+        String[] sortParts = sort.split(",");
+        String sortField = sortParts[0];
+        if (sortField.equals("price")) {
+            sortField = "basePrice";
+        } else if (sortField.equals("rating")) {
+            sortField = "averageRating";
+        }
+        
+        org.springframework.data.domain.Sort sortObj = org.springframework.data.domain.Sort.by(sortField);
+        if (sortParts.length > 1 && sortParts[1].equalsIgnoreCase("desc")) {
+            sortObj = sortObj.descending();
+        } else {
+            sortObj = sortObj.ascending();
+        }
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sortObj);
+
+        Page<Product> result = productRepository.findAll((root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            predicates.add(cb.equal(root.get("isActive"), true));
+
+            if (categoryId != null) {
+                predicates.add(cb.or(
+                    cb.equal(root.get("category").get("id"), categoryId),
+                    cb.equal(root.get("category").get("parent").get("id"), categoryId)
+                ));
+            }
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("seller").get("id"), sellerId));
+            }
+            if (brand != null && !brand.isBlank()) {
+                predicates.add(cb.equal(root.get("brand"), brand));
+            }
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("basePrice"), java.math.BigDecimal.valueOf(minPrice)));
+            }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("basePrice"), java.math.BigDecimal.valueOf(maxPrice)));
+            }
+            if (rating != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("averageRating"), java.math.BigDecimal.valueOf(rating)));
+            }
+            if (discount != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("discountPercent"), java.math.BigDecimal.valueOf(discount)));
+            }
+            if (inStock) {
+                predicates.add(cb.greaterThan(root.get("stockQty"), 0));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        }, pageable);
+
+        result.getContent();
+        return result;
+    }
+
+    @Cacheable(value = "productLists", key = "T(java.util.Objects).hash(#slug, #page, #size)")
+    public Page<Product> getProductsByCategorySlug(String slug, int page, int size) {
+        Category category = categoryRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Category not found with slug: " + slug));
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        
+        Page<Product> products = productRepository.findAll((root, query, cb) -> 
+            cb.and(
+                cb.or(
+                    cb.equal(root.get("category").get("id"), category.getId()),
+                    cb.equal(root.get("category").get("parent").get("id"), category.getId())
+                ),
+                cb.equal(root.get("isActive"), true)
+            ), pageable);
+            
+        products.getContent();
+        return products;
+    }
+
+    @Cacheable(value = "trendingProducts")
+    public List<Product> getTrendingProducts() {
+        return productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
+    }
+
+    @Cacheable(value = "newArrivals")
+    public List<Product> getNewArrivals() {
+        return productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
+    }
+
+    @Cacheable(value = "flashDeals")
+    public List<Product> getFlashDeals() {
+        List<FlashSale> activeSales = flashSaleRepository.findActiveFlashSales(LocalDateTime.now());
+        return activeSales.stream()
+                .map(FlashSale::getProduct)
+                .filter(Product::isActive)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Cacheable(value = "productDetails", key = "#slug")
@@ -76,7 +190,13 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "productDetails", key = "#product.slug")
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", key = "#product.slug"),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public Product saveProduct(Product product) {
         if (product.getSlug() == null || product.getSlug().isBlank()) {
             product.setSlug(generateUniqueSlug(product.getName()));
@@ -88,7 +208,13 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "productDetails", key = "#slug")
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", key = "#slug"),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public Product updateProduct(String slug, Product updatedProduct) {
         Product existing = productRepository.findBySlugWithDetails(slug)
                 .orElseThrow(() -> new RuntimeException("Product not found with slug: " + slug));
@@ -110,7 +236,13 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "productDetails", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", allEntries = true),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public void deleteProduct(Long id) {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -120,7 +252,13 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "productDetails", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", allEntries = true),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public void updateStock(Long id, int qty) {
         Product p = productRepository.findAndLockById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -142,7 +280,13 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "productDetails", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", allEntries = true),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public void recalculateAverageRating(Long productId, BigDecimal newAverage, int newCount) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -155,7 +299,13 @@ public class ProductService {
 
     @Async
     @Transactional
-    @CacheEvict(value = "productDetails", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", allEntries = true),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public void recalculateProductRatingAsync(Long productId) {
         log.info("Recalculating average rating asynchronously for product ID: {}", productId);
         try {
@@ -179,6 +329,14 @@ public class ProductService {
         }
     }
 
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "productDetails", allEntries = true),
+        @CacheEvict(value = "productLists", allEntries = true),
+        @CacheEvict(value = "trendingProducts", allEntries = true),
+        @CacheEvict(value = "newArrivals", allEntries = true),
+        @CacheEvict(value = "flashDeals", allEntries = true)
+    })
     public List<String> uploadProductImages(Long productId, byte[] fileBytes, String originalFilename, String contentType) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

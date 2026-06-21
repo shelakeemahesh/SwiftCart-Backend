@@ -1,14 +1,11 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
-
 import com.swiftcart.entity.Category;
 import com.swiftcart.entity.Product;
-import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.service.CategoryService;
+import com.swiftcart.service.ProductService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +18,11 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
 
-    public CategoryController(CategoryService categoryService, ProductRepository productRepository) {
+    public CategoryController(CategoryService categoryService, ProductService productService) {
         this.categoryService = categoryService;
-        this.productRepository = productRepository;
+        this.productService = productService;
     }
 
     @GetMapping
@@ -43,23 +40,7 @@ public class CategoryController {
             @PathVariable String slug,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Category category = categoryService.getCategoryBySlug(slug);
-        Pageable pageable = PageRequest.of(page, size);
-        
-        Page<Product> products = productRepository.findAll((root, query, cb) -> 
-            cb.and(
-                cb.or(
-                    cb.equal(root.get("category").get("id"), category.getId()),
-                    cb.equal(root.get("category").get("parent").get("id"), category.getId())
-                ),
-                cb.equal(root.get("isActive"), true)
-            ), pageable);
-            
-        products.getContent().forEach(p -> {
-            if (p.getImages() != null) p.getImages().size();
-            if (p.getVariants() != null) p.getVariants().size();
-        });
-            
+        Page<Product> products = productService.getProductsByCategorySlug(slug, page, size);
         return ResponseEntity.ok(ApiResponse.success(products));
     }
 }

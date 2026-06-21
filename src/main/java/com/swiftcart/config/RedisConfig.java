@@ -62,6 +62,9 @@ public class RedisConfig implements org.springframework.cache.annotation.Caching
         cacheConfigurations.put("categoryTree", defaultConfig.entryTtl(Duration.ofMinutes(60)));
         cacheConfigurations.put("trendingProducts", defaultConfig.entryTtl(Duration.ofMinutes(5)));
         cacheConfigurations.put("searchSuggestions", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        cacheConfigurations.put("productLists", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("newArrivals", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("flashDeals", defaultConfig.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

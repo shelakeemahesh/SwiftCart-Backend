@@ -18,6 +18,7 @@ public class CategoryService {
         this.categoryRepository = categoryRepository;
     }
 
+    @Cacheable(value = "categoryTree")
     @Transactional(readOnly = true)
     public List<Category> getRootCategories() {
         return categoryRepository.findRootCategoriesWithSubcategories();
