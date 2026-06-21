@@ -8,6 +8,7 @@ import com.swiftcart.repository.CategoryRepository;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.repository.ReviewRepository;
+import com.swiftcart.kafka.producer.OrderEventProducer;
 import com.swiftcart.util.SlugUtil;
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
@@ -16,7 +17,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class ProductService {
@@ -44,6 +42,8 @@ public class ProductService {
     private final S3Service s3Service;
     private final ReviewRepository reviewRepository;
     private final RedisFallbackService redisService;
+    private final OrderEventProducer orderEventProducer;
+    private final SearchService searchService;
 
     public ProductService(
             ProductRepository productRepository,
@@ -51,13 +51,17 @@ public class ProductService {
             UserRepository userRepository,
             S3Service s3Service,
             ReviewRepository reviewRepository,
-            RedisFallbackService redisService) {
+            RedisFallbackService redisService,
+            OrderEventProducer orderEventProducer,
+            SearchService searchService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.s3Service = s3Service;
         this.reviewRepository = reviewRepository;
         this.redisService = redisService;
+        this.orderEventProducer = orderEventProducer;
+        this.searchService = searchService;
     }
 
     public Page<Product> listProducts(Pageable pageable) {
@@ -74,12 +78,12 @@ public class ProductService {
     @Transactional
     @CacheEvict(value = "productDetails", key = "#product.slug")
     public Product saveProduct(Product product) {
-        
         if (product.getSlug() == null || product.getSlug().isBlank()) {
             product.setSlug(generateUniqueSlug(product.getName()));
         }
 
         Product saved = productRepository.save(product);
+        publishIndexingEvent(saved);
         return saved;
     }
 
@@ -101,6 +105,7 @@ public class ProductService {
         existing.setSpecifications(updatedProduct.getSpecifications());
 
         Product saved = productRepository.save(existing);
+        publishIndexingEvent(saved);
         return saved;
     }
 
@@ -110,7 +115,8 @@ public class ProductService {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         p.setActive(false);
-        productRepository.save(p);
+        Product saved = productRepository.save(p);
+        publishIndexingEvent(saved);
     }
 
     @Transactional
@@ -119,7 +125,8 @@ public class ProductService {
         Product p = productRepository.findAndLockById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         p.setStockQty(qty);
-        productRepository.save(p);
+        Product saved = productRepository.save(p);
+        publishIndexingEvent(saved);
     }
 
     private String generateUniqueSlug(String name) {
@@ -134,7 +141,6 @@ public class ProductService {
         return currentSlug;
     }
 
-    // This comment is written by human not ai - Recalculates average rating asynchronously (e.g. from service call)
     @Transactional
     @CacheEvict(value = "productDetails", allEntries = true)
     public void recalculateAverageRating(Long productId, BigDecimal newAverage, int newCount) {
@@ -142,7 +148,8 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         product.setAverageRating(newAverage);
         product.setReviewCount(newCount);
-        productRepository.save(product);
+        Product saved = productRepository.save(product);
+        publishIndexingEvent(saved);
         log.info("Recalculated rating for product ID {}: avg = {}, count = {}", productId, newAverage, newCount);
     }
 
@@ -177,7 +184,6 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         try {
-            
             ByteArrayOutputStream mainOs = new ByteArrayOutputStream();
             Thumbnails.of(new ByteArrayInputStream(fileBytes))
                     .size(800, 1200)
@@ -215,7 +221,8 @@ public class ProductService {
             product.getImages().add(mainImg);
             product.getImages().add(thumbImg);
 
-            productRepository.save(product);
+            Product saved = productRepository.save(product);
+            publishIndexingEvent(saved);
 
             return List.of(mainUrl, thumbUrl);
 
@@ -244,7 +251,6 @@ public class ProductService {
 
             while ((line = reader.readLine()) != null) {
                 try {
-                    
                     String[] tokens = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
                     if (tokens.length < 5) continue;
 
@@ -314,4 +320,11 @@ public class ProductService {
         return status != null ? status : "NOT_FOUND";
     }
 
+    private void publishIndexingEvent(Product product) {
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishProductIndexing(product.getId());
+        } else {
+            searchService.indexProduct(product.getId());
+        }
+    }
 }

@@ -17,4 +17,12 @@ spring:
   redis:
     host: localhost
     port: 6379
+  data:
+    elasticsearch:
+      repositories:
+        enabled: false
+  kafka:
+    enabled: false
 
+elasticsearch:
+  enabled: false

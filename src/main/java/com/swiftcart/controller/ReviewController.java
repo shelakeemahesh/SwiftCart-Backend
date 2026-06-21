@@ -1,7 +1,6 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
-
 import com.swiftcart.entity.Order;
 import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.Product;
@@ -12,6 +11,7 @@ import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.ProductService;
+import com.swiftcart.kafka.producer.OrderEventProducer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,18 +32,21 @@ public class ReviewController {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ProductService productService;
+    private final OrderEventProducer orderEventProducer;
 
     public ReviewController(
             ReviewRepository reviewRepository,
             OrderRepository orderRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
-            ProductService productService) {
+            ProductService productService,
+            OrderEventProducer orderEventProducer) {
         this.reviewRepository = reviewRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.productService = productService;
+        this.orderEventProducer = orderEventProducer;
     }
 
     @GetMapping("/products/{productId}")
@@ -99,8 +102,11 @@ public class ReviewController {
 
         Review saved = reviewRepository.save(review);
 
-        // This comment is written by human not ai - Async recalculation of average rating directly
-        productService.recalculateProductRatingAsync(productId);
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishRatingRecalculation(productId);
+        } else {
+            productService.recalculateProductRatingAsync(productId);
+        }
 
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
@@ -120,7 +126,11 @@ public class ReviewController {
         review.setRating(updated.getRating());
         Review saved = reviewRepository.save(review);
 
-        productService.recalculateProductRatingAsync(review.getProduct().getId());
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishRatingRecalculation(review.getProduct().getId());
+        } else {
+            productService.recalculateProductRatingAsync(review.getProduct().getId());
+        }
 
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
@@ -137,14 +147,17 @@ public class ReviewController {
 
         reviewRepository.delete(review);
 
-        productService.recalculateProductRatingAsync(review.getProduct().getId());
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishRatingRecalculation(review.getProduct().getId());
+        } else {
+            productService.recalculateProductRatingAsync(review.getProduct().getId());
+        }
 
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Review deleted successfully")));
     }
 
     @PostMapping("/{reviewId}/helpful")
     public ResponseEntity<ApiResponse<Map<String, Object>>> markHelpful(Principal principal, @PathVariable Long reviewId) {
-        
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
 

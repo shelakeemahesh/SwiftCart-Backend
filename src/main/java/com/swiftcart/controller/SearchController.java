@@ -46,4 +46,10 @@ public class SearchController {
         return ResponseEntity.ok(ApiResponse.success(searchService.getTrendingSearchKeywords()));
     }
 
+    @PostMapping("/reindex")
+    public ResponseEntity<ApiResponse<String>> triggerReindex() {
+        searchService.reindexAll();
+        return ResponseEntity.ok(ApiResponse.success("Reindexing triggered successfully"));
+    }
+
 }

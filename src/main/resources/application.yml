@@ -30,6 +30,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  data:
+    elasticsearch:
+      repositories:
+        enabled: ${ELASTICSEARCH_ENABLED:false}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}
     username: ${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}
@@ -56,6 +60,17 @@ spring:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
+  kafka:
+    enabled: ${SPRING_KAFKA_ENABLED:false}
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:swiftcart-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   mail:
     host: ${MAIL_HOST:smtp-relay.brevo.com}
     port: ${MAIL_PORT:587}
@@ -68,6 +83,10 @@ spring:
           starttls:
             enable: true
 
+elasticsearch:
+  enabled: ${ELASTICSEARCH_ENABLED:false}
+  host: ${ES_HOST:localhost}
+  port: ${ES_PORT:9200}
 
 jwt:
   secret: ${JWT_SECRET:dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=}

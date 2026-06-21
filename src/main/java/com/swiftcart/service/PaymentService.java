@@ -13,7 +13,7 @@ import com.swiftcart.entity.RazorpayPayment;
 import com.swiftcart.enums.RazorpayPaymentStatus;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.RazorpayPaymentRepository;
-import com.swiftcart.service.NotificationService;
+import com.swiftcart.kafka.producer.OrderEventProducer;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,6 @@ import java.math.BigDecimal;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.time.Duration;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 @Service
 public class PaymentService {
@@ -38,6 +37,7 @@ public class PaymentService {
     private final RazorpayPaymentRepository razorpayPaymentRepository;
     private final RazorpayClient razorpayClient;
     private final NotificationService notificationService;
+    private final OrderEventProducer orderEventProducer;
     private final StringRedisTemplate redisTemplate;
 
     @Value("${razorpay.key.id}")
@@ -53,11 +53,13 @@ public class PaymentService {
             OrderRepository orderRepository,
             RazorpayPaymentRepository razorpayPaymentRepository,
             RazorpayClient razorpayClient,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            OrderEventProducer orderEventProducer) {
         this.orderRepository = orderRepository;
         this.razorpayPaymentRepository = razorpayPaymentRepository;
         this.razorpayClient = razorpayClient;
         this.notificationService = notificationService;
+        this.orderEventProducer = orderEventProducer;
         this.redisTemplate = redisTemplate;
     }
 
@@ -132,8 +134,12 @@ public class PaymentService {
             order.setStatus(OrderStatus.CONFIRMED);
             orderRepository.save(order);
 
-            if (order.getUser() != null && order.getUser().getEmail() != null) {
-                notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+            if (orderEventProducer.isKafkaEnabled()) {
+                orderEventProducer.publishOrderConfirmed(order);
+            } else {
+                if (order.getUser() != null && order.getUser().getEmail() != null) {
+                    notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                }
             }
             log.info("Payment verified successfully via signature verification for order UUID: {}", order.getOrderUuid());
         }
@@ -199,8 +205,12 @@ public class PaymentService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
 
-                if (order.getUser() != null && order.getUser().getEmail() != null) {
-                    notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                if (orderEventProducer.isKafkaEnabled()) {
+                    orderEventProducer.publishOrderConfirmed(order);
+                } else {
+                    if (order.getUser() != null && order.getUser().getEmail() != null) {
+                        notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                    }
                 }
                 log.info("Webhook marked order {} as PAID (payment captured)", order.getOrderUuid());
             }
@@ -271,8 +281,12 @@ public class PaymentService {
                 order.setStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
 
-                if (order.getUser() != null && order.getUser().getEmail() != null) {
-                    notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                if (orderEventProducer.isKafkaEnabled()) {
+                    orderEventProducer.publishOrderConfirmed(order);
+                } else {
+                    if (order.getUser() != null && order.getUser().getEmail() != null) {
+                        notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
+                    }
                 }
                 log.info("Webhook marked order {} as PAID (order.paid event)", order.getOrderUuid());
             }

@@ -1,9 +1,9 @@
 package com.swiftcart.service;
 
 import com.swiftcart.enums.*;
-
 import com.swiftcart.entity.*;
 import com.swiftcart.repository.*;
+import com.swiftcart.kafka.producer.OrderEventProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class OrderService {
@@ -30,6 +29,7 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final PricingService pricingService;
     private final NotificationService notificationService;
+    private final OrderEventProducer orderEventProducer;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -40,7 +40,8 @@ public class OrderService {
             AddressRepository addressRepository,
             CouponRepository couponRepository,
             PricingService pricingService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            OrderEventProducer orderEventProducer) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartRepository = cartRepository;
@@ -50,6 +51,7 @@ public class OrderService {
         this.couponRepository = couponRepository;
         this.pricingService = pricingService;
         this.notificationService = notificationService;
+        this.orderEventProducer = orderEventProducer;
     }
 
     public Page<Order> listUserOrders(Long userId, OrderStatus status, Pageable pageable) {
@@ -85,7 +87,6 @@ public class OrderService {
             throw new RuntimeException("Unauthorized address usage");
         }
 
-        // This comment is written by human not ai - 2. Lock stock levels using Pessimistic Lock (SELECT ... FOR UPDATE) and validate availability
         BigDecimal mrpTotal = BigDecimal.ZERO;
         BigDecimal finalTotalBeforeCoupon = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
@@ -94,7 +95,6 @@ public class OrderService {
             Product product;
             ProductVariant variant = null;
 
-            // This comment is written by human not ai - Lock the product base row
             product = productRepository.findAndLockById(item.getProduct().getId())
                     .orElseThrow(() -> new RuntimeException("Product no longer exists"));
 
@@ -104,7 +104,6 @@ public class OrderService {
 
             int requestedQty = item.getQuantity();
 
-            // This comment is written by human not ai - Lock variant row if exists
             if (item.getVariant() != null) {
                 variant = variantRepository.findAndLockById(item.getVariant().getId())
                         .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
@@ -215,9 +214,12 @@ public class OrderService {
             productRepository.save(p);
         }
 
-        // This comment is written by human not ai - 8. Trigger asynchronous OrderPlaced email notification directly
-        if (savedOrder.getUser() != null && savedOrder.getUser().getEmail() != null) {
-            notificationService.sendOrderConfirmation(savedOrder.getUser().getEmail(), savedOrder.getOrderUuid());
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishOrderPlaced(savedOrder.getOrderUuid());
+        } else {
+            if (savedOrder.getUser() != null && savedOrder.getUser().getEmail() != null) {
+                notificationService.sendOrderConfirmation(savedOrder.getUser().getEmail(), savedOrder.getOrderUuid());
+            }
         }
 
         log.info("Order placed successfully with UUID: {}", savedOrder.getOrderUuid());
@@ -241,7 +243,6 @@ public class OrderService {
         if (order.getPaymentStatus() == PaymentStatus.PAID) {
             order.setPaymentStatus(PaymentStatus.REFUNDED); 
         }
-        notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CANCELLED");
 
         for (OrderItem item : order.getItems()) {
             if (item.getVariant() != null) {
@@ -256,6 +257,15 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
+
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishOrderStatusChange(saved.getOrderUuid(), "CANCELLED");
+        } else {
+            if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+                notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), "CANCELLED");
+            }
+        }
+
         return saved;
     }
 
@@ -274,9 +284,15 @@ public class OrderService {
 
         order.setStatus(OrderStatus.RETURN_REQUESTED);
         Order saved = orderRepository.save(order);
-        if (saved.getUser() != null && saved.getUser().getEmail() != null) {
-            notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishOrderStatusChange(saved.getOrderUuid(), saved.getStatus().name());
+        } else {
+            if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+                notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+            }
         }
+
         return saved;
     }
 
@@ -287,9 +303,15 @@ public class OrderService {
 
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
-        if (saved.getUser() != null && saved.getUser().getEmail() != null) {
-            notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+
+        if (orderEventProducer.isKafkaEnabled()) {
+            orderEventProducer.publishOrderStatusChange(saved.getOrderUuid(), saved.getStatus().name());
+        } else {
+            if (saved.getUser() != null && saved.getUser().getEmail() != null) {
+                notificationService.sendOrderStatusUpdate(saved.getUser().getEmail(), saved.getOrderUuid(), saved.getStatus().name());
+            }
         }
+
         return saved;
     }
 
