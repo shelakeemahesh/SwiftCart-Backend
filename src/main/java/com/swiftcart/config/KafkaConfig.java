@@ -13,6 +13,7 @@ public class KafkaConfig {
     public static final String ORDER_STATUS_TOPIC = "order-status-events";
     public static final String PRODUCT_RATING_RECALC_TOPIC = "product-rating-recalc";
     public static final String PRODUCT_INDEXING_TOPIC = "product-indexing";
+    public static final String LIVE_ACTIVITY_TOPIC = "swiftcart-live-activity";
 
     @Bean
     public NewTopic orderPlacedTopic() {
@@ -41,6 +42,14 @@ public class KafkaConfig {
     @Bean
     public NewTopic productIndexingTopic() {
         return TopicBuilder.name(PRODUCT_INDEXING_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic liveActivityTopic() {
+        return TopicBuilder.name(LIVE_ACTIVITY_TOPIC)
                 .partitions(3)
                 .replicas(1)
                 .build();

@@ -4,6 +4,8 @@ import com.swiftcart.enums.*;
 import com.swiftcart.entity.*;
 import com.swiftcart.repository.*;
 import com.swiftcart.kafka.producer.OrderEventProducer;
+import com.swiftcart.event.LiveActivityEvent;
+import com.swiftcart.kafka.producer.LiveActivityProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class OrderService {
     private final PricingService pricingService;
     private final NotificationService notificationService;
     private final OrderEventProducer orderEventProducer;
+    private final LiveActivityProducer liveActivityProducer;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -41,7 +44,8 @@ public class OrderService {
             CouponRepository couponRepository,
             PricingService pricingService,
             NotificationService notificationService,
-            OrderEventProducer orderEventProducer) {
+            OrderEventProducer orderEventProducer,
+            LiveActivityProducer liveActivityProducer) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartRepository = cartRepository;
@@ -52,6 +56,7 @@ public class OrderService {
         this.pricingService = pricingService;
         this.notificationService = notificationService;
         this.orderEventProducer = orderEventProducer;
+        this.liveActivityProducer = liveActivityProducer;
     }
 
     public Page<Order> listUserOrders(Long userId, OrderStatus status, Pageable pageable) {
@@ -223,6 +228,16 @@ public class OrderService {
         }
 
         log.info("Order placed successfully with UUID: {}", savedOrder.getOrderUuid());
+        try {
+            liveActivityProducer.publishEvent(new LiveActivityEvent(
+                    "PURCHASE",
+                    savedOrder.getUser() != null ? savedOrder.getUser().getName() : "Customer",
+                    orderItems.isEmpty() ? "Product" : (orderItems.get(0).getProduct() != null ? orderItems.get(0).getProduct().getName() : "Product"),
+                    savedOrder.getAddress() != null ? savedOrder.getAddress().getCity() : "Bengaluru"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish live activity event", e);
+        }
         return savedOrder;
     }
 

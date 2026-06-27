@@ -49,6 +49,7 @@ public class ProductService {
     private final OrderEventProducer orderEventProducer;
     private final SearchService searchService;
     private final FlashSaleRepository flashSaleRepository;
+    private final PriceHistoryService priceHistoryService;
 
     public ProductService(
             ProductRepository productRepository,
@@ -59,7 +60,8 @@ public class ProductService {
             RedisFallbackService redisService,
             OrderEventProducer orderEventProducer,
             SearchService searchService,
-            FlashSaleRepository flashSaleRepository) {
+            FlashSaleRepository flashSaleRepository,
+            PriceHistoryService priceHistoryService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
@@ -69,6 +71,7 @@ public class ProductService {
         this.orderEventProducer = orderEventProducer;
         this.searchService = searchService;
         this.flashSaleRepository = flashSaleRepository;
+        this.priceHistoryService = priceHistoryService;
     }
 
     public Page<Product> listProducts(Pageable pageable) {
@@ -203,6 +206,11 @@ public class ProductService {
         }
 
         Product saved = productRepository.save(product);
+        try {
+            priceHistoryService.recordPriceChange(saved, saved.getBasePrice());
+        } catch (Exception e) {
+            log.error("Failed to record price change on saveProduct", e);
+        }
         publishIndexingEvent(saved);
         return saved;
     }
@@ -231,6 +239,11 @@ public class ProductService {
         existing.setSpecifications(updatedProduct.getSpecifications());
 
         Product saved = productRepository.save(existing);
+        try {
+            priceHistoryService.recordPriceChange(saved, saved.getBasePrice());
+        } catch (Exception e) {
+            log.error("Failed to record price change on updateProduct", e);
+        }
         publishIndexingEvent(saved);
         return saved;
     }

@@ -9,6 +9,8 @@ import com.swiftcart.repository.FlashSaleRepository;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.service.ProductService;
 import com.swiftcart.service.SearchService;
+import com.swiftcart.event.LiveActivityEvent;
+import com.swiftcart.kafka.producer.LiveActivityProducer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,16 +32,23 @@ public class ProductController {
     private final ProductRepository productRepository;
     private final SearchService searchService;
     private final FlashSaleRepository flashSaleRepository;
+    private final LiveActivityProducer liveActivityProducer;
+
+    private final String[] mockNames = {"Sneha", "Rahul", "Priya", "Amit", "Vikram", "Anjali", "Rohan", "Karan", "Nisha", "Aditya"};
+    private final String[] mockCities = {"Mumbai", "Bengaluru", "Delhi", "Pune", "Hyderabad", "Chennai", "Kolkata", "Ahmedabad", "Jaipur", "Surat"};
+    private final java.util.Random random = new java.util.Random();
 
     public ProductController(
             ProductService productService,
             ProductRepository productRepository,
             SearchService searchService,
-            FlashSaleRepository flashSaleRepository) {
+            FlashSaleRepository flashSaleRepository,
+            LiveActivityProducer liveActivityProducer) {
         this.productService = productService;
         this.productRepository = productRepository;
         this.searchService = searchService;
         this.flashSaleRepository = flashSaleRepository;
+        this.liveActivityProducer = liveActivityProducer;
     }
 
     @GetMapping
@@ -62,8 +71,21 @@ public class ProductController {
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<ApiResponse<Product>> getProductBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(ApiResponse.success(productService.getProductBySlug(slug)));
+    public ResponseEntity<ApiResponse<Product>> getProductBySlug(java.security.Principal principal, @PathVariable String slug) {
+        Product product = productService.getProductBySlug(slug);
+        try {
+            String name = (principal != null) ? principal.getName() : mockNames[random.nextInt(mockNames.length)];
+            String city = mockCities[random.nextInt(mockCities.length)];
+            liveActivityProducer.publishEvent(new LiveActivityEvent(
+                    "VIEW",
+                    name,
+                    product.getName(),
+                    city
+            ));
+        } catch (Exception e) {
+            // Ignore error
+        }
+        return ResponseEntity.ok(ApiResponse.success(product));
     }
 
     @GetMapping("/search")

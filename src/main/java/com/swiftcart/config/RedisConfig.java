@@ -14,6 +14,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class RedisConfig implements org.springframework.cache.annotation.Caching
     }
 
     @Bean
+    @ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = true)
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         GenericJackson2JsonRedisSerializer serializer = createJacksonSerializer();
 
