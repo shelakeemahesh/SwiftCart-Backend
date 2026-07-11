@@ -80,7 +80,7 @@ public class OrderService {
     public Order placeOrder(Long userId, Long addressId, String couponCode, PaymentMethod paymentMethod, String notes) {
         log.info("Starting order placement for user ID: {}", userId);
 
-        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        List<CartItem> cartItems = cartRepository.findAndLockByUserId(userId);
         if (cartItems.isEmpty()) {
             throw new RuntimeException("Cannot place order with an empty cart");
         }
@@ -240,7 +240,7 @@ public class OrderService {
 
     @Transactional
     public Order cancelOrder(String orderUuid, Long userId) {
-        Order order = orderRepository.findByOrderUuid(orderUuid)
+        Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         if (!order.getUser().getId().equals(userId)) {
@@ -287,7 +287,7 @@ public class OrderService {
 
     @Transactional
     public Order requestReturn(String orderUuid, Long userId) {
-        Order order = orderRepository.findByOrderUuid(orderUuid)
+        Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         if (!order.getUser().getId().equals(userId)) {
@@ -314,7 +314,7 @@ public class OrderService {
 
     @Transactional
     public Order updateOrderStatusBySellerOrAdmin(String orderUuid, OrderStatus newStatus) {
-        Order order = orderRepository.findByOrderUuid(orderUuid)
+        Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         validateStatusTransition(order.getStatus(), newStatus);

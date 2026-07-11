@@ -12,6 +12,11 @@ import java.util.Optional;
 public interface CartRepository extends JpaRepository<CartItem, Long> {
     @EntityGraph(attributePaths = {"product", "product.images", "product.seller", "product.category", "variant"})
     List<CartItem> findByUserId(Long userId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"product", "product.images", "product.seller", "product.category", "variant"})
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM CartItem c WHERE c.user.id = :userId")
+    List<CartItem> findAndLockByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
     Optional<CartItem> findByUserIdAndProductIdAndVariantId(Long userId, Long productId, Long variantId);
     Optional<CartItem> findByUserIdAndProductIdAndVariantIsNull(Long userId, Long productId);
     @org.springframework.data.jpa.repository.Modifying

@@ -17,6 +17,11 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items", "items.product", "items.variant", "address"})
     Optional<Order> findByOrderUuid(String orderUuid);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"items", "items.product", "items.variant", "address"})
+    @Query("SELECT o FROM Order o WHERE o.orderUuid = :orderUuid")
+    Optional<Order> findAndLockByOrderUuid(@Param("orderUuid") String orderUuid);
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
     @EntityGraph(attributePaths = {"items", "items.product", "items.variant"})
     Page<Order> findByUserId(Long userId, Pageable pageable);
