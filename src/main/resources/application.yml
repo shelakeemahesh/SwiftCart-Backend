@@ -9,7 +9,7 @@ server:
 
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: "${SPRING_PROFILES_ACTIVE:dev}"
   main:
     lazy-initialization: false
   config:
@@ -19,9 +19,9 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:YOUR_GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET:YOUR_GOOGLE_CLIENT_SECRET}
-            redirect-uri: ${OAUTH2_CALLBACK_URL:{baseUrl}/oauth2/callback/{registrationId}}
+            client-id: "${GOOGLE_CLIENT_ID:YOUR_GOOGLE_CLIENT_ID}"
+            client-secret: "${GOOGLE_CLIENT_SECRET:YOUR_GOOGLE_CLIENT_SECRET}"
+            redirect-uri: "${OAUTH2_CALLBACK_URL:{baseUrl}/oauth2/callback/{registrationId}}"
             scope:
               - email
               - profile
@@ -33,11 +33,11 @@ spring:
   data:
     elasticsearch:
       repositories:
-        enabled: ${ELASTICSEARCH_ENABLED:false}
+        enabled: "${ELASTICSEARCH_ENABLED:false}"
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}
-    username: ${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}
-    password: ${SPRING_DATASOURCE_PASSWORD:MGMGi45fT2PLGknJ}
+    url: "${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}"
+    username: "${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}"
+    password: "${SPRING_DATASOURCE_PASSWORD:MGMGi45fT2PLGknJ}"
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
@@ -49,7 +49,7 @@ spring:
     open-in-view: false
     defer-datasource-initialization: false
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: "${JPA_DDL_AUTO:update}"
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
@@ -57,16 +57,16 @@ spring:
         format_sql: true
     show-sql: false
   cache:
-    type: ${SPRING_CACHE_TYPE:redis}
+    type: "${SPRING_CACHE_TYPE:redis}"
   redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    host: "${REDIS_HOST:localhost}"
+    port: "${REDIS_PORT:6379}"
+    password: "${REDIS_PASSWORD:}"
   kafka:
-    enabled: ${SPRING_KAFKA_ENABLED:false}
-    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    enabled: "${SPRING_KAFKA_ENABLED:false}"
+    bootstrap-servers: "${KAFKA_BROKERS:localhost:9092}"
     consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP_ID:swiftcart-group}
+      group-id: "${KAFKA_CONSUMER_GROUP_ID:swiftcart-group}"
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -74,10 +74,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
   mail:
-    host: ${MAIL_HOST:smtp-relay.brevo.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:a044e5001@smtp-brevo.com}
-    password: ${MAIL_PASSWORD:YOUR_BREVO_SMTP_KEY}
+    host: "${MAIL_HOST:smtp-relay.brevo.com}"
+    port: "${MAIL_PORT:587}"
+    username: "${MAIL_USERNAME:a044e5001@smtp-brevo.com}"
+    password: "${MAIL_PASSWORD:YOUR_BREVO_SMTP_KEY}"
     properties:
       mail:
         smtp:
@@ -86,30 +86,28 @@ spring:
             enable: true
 
 elasticsearch:
-  enabled: ${ELASTICSEARCH_ENABLED:false}
-  host: ${ES_HOST:localhost}
-  port: ${ES_PORT:9200}
+  enabled: "${ELASTICSEARCH_ENABLED:false}"
+  host: "${ES_HOST:localhost}"
+  port: "${ES_PORT:9200}"
 
 jwt:
-  secret: ${JWT_SECRET:dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=}
+  secret: "${JWT_SECRET:dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1rZXktZm9yLXN3aWZ0Y2FydC1iYWNrZW5kLXByb2plY3Qtc2hvdWxkLWJlLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=}"
   access-token-expiry-ms: 900000 # 15 minutes
   refresh-token-expiry-ms: 604800000 # 7 days
 
-
-
 razorpay:
   key:
-    id: ${RAZORPAY_KEY_ID:rzp_test_mockkey}
-    secret: ${RAZORPAY_KEY_SECRET:mocksecret}
+    id: "${RAZORPAY_KEY_ID:rzp_test_mockkey}"
+    secret: "${RAZORPAY_KEY_SECRET:mocksecret}"
   webhook:
-    secret: ${RAZORPAY_WEBHOOK_SECRET:mockwebhooksecret}
+    secret: "${RAZORPAY_WEBHOOK_SECRET:mockwebhooksecret}"
 
 aws:
   s3:
-    bucket: ${S3_BUCKET:swiftcart-bucket}
-    region: ${AWS_REGION:us-east-1}
-    access-key: ${AWS_ACCESS_KEY_ID:}
-    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    bucket: "${S3_BUCKET:swiftcart-bucket}"
+    region: "${AWS_REGION:us-east-1}"
+    access-key: "${AWS_ACCESS_KEY_ID:}"
+    secret-key: "${AWS_SECRET_ACCESS_KEY:}"
 
 logging:
   level:
@@ -128,14 +126,13 @@ management:
     elasticsearch:
       enabled: false
 
-
 app:
   frontend:
-    domain: ${FRONTEND_URL:http://localhost:5173}
+    domain: "${FRONTEND_URL:http://localhost:5173}"
   oauth2:
-    authorizedRedirectUris: ${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback}
+    authorizedRedirectUris: "${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback}"
 
 twilio:
-  account-sid: ${TWILIO_ACCOUNT_SID:YOUR_TWILIO_ACCOUNT_SID}
-  auth-token: ${TWILIO_AUTH_TOKEN:YOUR_TWILIO_AUTH_TOKEN}
-  phone-number: ${TWILIO_PHONE_NUMBER:YOUR_TWILIO_PHONE_NUMBER}
+  account-sid: "${TWILIO_ACCOUNT_SID:YOUR_TWILIO_ACCOUNT_SID}"
+  auth-token: "${TWILIO_AUTH_TOKEN:YOUR_TWILIO_AUTH_TOKEN}"
+  phone-number: "${TWILIO_PHONE_NUMBER:YOUR_TWILIO_PHONE_NUMBER}"

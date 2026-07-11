@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.0</version>
+        <version>3.3.10</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.swiftcart</groupId>
@@ -16,8 +16,8 @@
     <description>SwiftCart Backend Application</description>
     <properties>
         <java.version>21</java.version>
-        <springdoc.version>2.5.0</springdoc.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <springdoc.version>2.6.0</springdoc.version>
+        <jjwt.version>0.12.6</jjwt.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <owasp-sanitizer.version>20240325.1</owasp-sanitizer.version>
         <aws.sdk.version>2.25.27</aws.sdk.version>
@@ -139,14 +139,14 @@
         <dependency>
             <groupId>com.razorpay</groupId>
             <artifactId>razorpay-java</artifactId>
-            <version>1.4.6</version>
+            <version>1.4.7</version>
         </dependency>
 
         <!-- Twilio SDK for SMS notifications -->
         <dependency>
             <groupId>com.twilio.sdk</groupId>
             <artifactId>twilio</artifactId>
-            <version>10.1.0</version>
+            <version>10.6.0</version>
         </dependency>
 
         <!-- Jackson Hibernate datatype for lazy-loading serialization -->

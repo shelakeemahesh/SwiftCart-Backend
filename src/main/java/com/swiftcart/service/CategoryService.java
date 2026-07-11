@@ -26,7 +26,7 @@ public class CategoryService {
 
     private void initializeSubCategories(Category category) {
         if (category.getSubCategories() != null) {
-            category.getSubCategories().size(); 
+            org.hibernate.Hibernate.initialize(category.getSubCategories());
             category.getSubCategories().forEach(this::initializeSubCategories);
         }
     }

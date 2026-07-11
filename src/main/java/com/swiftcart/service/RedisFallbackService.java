@@ -72,7 +72,7 @@ public class RedisFallbackService {
         if (redisTemplate != null) {
             try {
                 Long val = redisTemplate.opsForValue().increment(key);
-                if (val != null && val == 1) {
+                if (val != null && val.equals(1L)) {
                     redisTemplate.expire(key, ttl);
                 }
                 return val;

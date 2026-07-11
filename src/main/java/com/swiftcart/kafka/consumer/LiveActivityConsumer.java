@@ -61,6 +61,8 @@ public class LiveActivityConsumer {
         }
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LiveActivityConsumer.class);
+
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 12000)
     public void generateMockActivity() {
         if (emitters.isEmpty()) {
@@ -76,7 +78,7 @@ public class LiveActivityConsumer {
             String json = objectMapper.writeValueAsString(event);
             onEventReceived(json);
         } catch (Exception e) {
-            // Ignore
+            log.error("Failed to generate mock activity", e);
         }
     }
 

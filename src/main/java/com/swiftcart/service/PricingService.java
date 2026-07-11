@@ -19,6 +19,10 @@ public class PricingService {
     private final CouponRepository couponRepository;
     private final FlashSaleRepository flashSaleRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private PricingService self;
+
     public PricingService(CouponRepository couponRepository, FlashSaleRepository flashSaleRepository) {
         this.couponRepository = couponRepository;
         this.flashSaleRepository = flashSaleRepository;
@@ -26,7 +30,7 @@ public class PricingService {
 
     public BigDecimal getEffectiveProductPrice(Product product) {
         
-        Optional<FlashSale> activeSale = getActiveFlashSale(product.getId());
+        Optional<FlashSale> activeSale = self.getActiveFlashSale(product.getId());
         if (activeSale.isPresent()) {
             FlashSale sale = activeSale.get();
             if (sale.getSoldCount() < sale.getStockLimit()) {
@@ -68,7 +72,7 @@ public class PricingService {
         BigDecimal discount = BigDecimal.ZERO;
 
         if (coupon.getType() == CouponType.PERCENT) {
-            discount = orderValue.multiply(coupon.getValue().divide(BigDecimal.valueOf(100)));
+            discount = orderValue.multiply(coupon.getValue().divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP));
             if (coupon.getMaxDiscount() != null && discount.compareTo(coupon.getMaxDiscount()) > 0) {
                 discount = coupon.getMaxDiscount();
             }

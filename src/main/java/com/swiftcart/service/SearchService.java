@@ -35,6 +35,10 @@ public class SearchService {
     private final ProductRepository productRepository;
     private final ElasticsearchOperations elasticsearchOperations;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private SearchService self;
+
     public SearchService(
             Optional<ProductSearchRepository> searchRepository,
             ProductRepository productRepository,
@@ -54,7 +58,7 @@ public class SearchService {
         try {
             searchRepository.deleteAll();
             productRepository.findAll().forEach(product -> {
-                indexProduct(product.getId());
+                self.indexProduct(product.getId());
             });
             log.info("Successfully reindexed all products in Elasticsearch");
         } catch (Exception e) {
