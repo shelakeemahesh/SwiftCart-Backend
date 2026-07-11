@@ -10,6 +10,7 @@ import com.swiftcart.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -25,6 +26,7 @@ public class PaymentController {
     }
 
     @PostMapping("/razorpay/create-order")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#body['orderUuid'])")
     public ResponseEntity<ApiResponse<RazorpayOrderResponse>> createRazorpayOrder(@RequestBody Map<String, String> body) {
         String orderUuid = body.get("orderUuid");
         if (orderUuid == null) {
@@ -35,6 +37,7 @@ public class PaymentController {
     }
 
     @PostMapping("/razorpay/verify")
+    @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#request.swiftcartOrderUuid)")
     public ResponseEntity<ApiResponse<PaymentVerifyResponse>> verifyPayment(@Valid @RequestBody PaymentVerifyRequest request) {
         PaymentVerifyResponse response = paymentService.verifyPayment(request);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -49,6 +52,7 @@ public class PaymentController {
     }
 
     @PostMapping("/razorpay/refund/{orderUuid}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RefundResponse>> initiateRefund(
             @PathVariable String orderUuid,
             @RequestParam BigDecimal refundAmount) {

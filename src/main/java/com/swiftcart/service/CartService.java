@@ -81,6 +81,10 @@ public class CartService {
 
     @Transactional
     public CartItem updateQuantity(Long userId, Long itemId, int quantity) {
+        if (quantity <= 0) {
+            throw new RuntimeException("Quantity must be greater than 0");
+        }
+
         CartItem item = cartRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
 

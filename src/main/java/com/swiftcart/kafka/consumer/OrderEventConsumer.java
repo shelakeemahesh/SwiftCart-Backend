@@ -58,8 +58,10 @@ public class OrderEventConsumer {
 
     @Transactional
     @KafkaListener(topics = KafkaConfig.ORDER_STATUS_TOPIC, groupId = "swiftcart-group")
-    public void consumeOrderStatusChange(String orderUuid) {
-        log.info("Received OrderStatusChange event from Kafka for UUID: {}", orderUuid);
+    public void consumeOrderStatusChange(
+            @org.springframework.messaging.handler.annotation.Header(org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY) String orderUuid,
+            @org.springframework.messaging.handler.annotation.Payload String status) {
+        log.info("Received OrderStatusChange event from Kafka for UUID: {} - status: {}", orderUuid, status);
         orderRepository.findByOrderUuid(orderUuid).ifPresent(order -> {
             String email = order.getUser().getEmail();
             if (email != null && !email.isBlank()) {

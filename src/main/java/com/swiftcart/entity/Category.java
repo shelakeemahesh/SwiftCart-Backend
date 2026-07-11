@@ -28,7 +28,7 @@ public class Category {
     @JsonIgnore
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"parent", "subCategories"})
     private List<Category> subCategories = new ArrayList<>();
 

@@ -38,7 +38,7 @@ public class RazorpayPayment {
     private String refundId;
 
     @Column(name = "amount_paisa", nullable = false)
-    private int amountPaisa;
+    private long amountPaisa;
 
     @Column(length = 10)
     private String currency = "INR";
@@ -84,8 +84,8 @@ public class RazorpayPayment {
     public String getRefundId() { return refundId; }
     public void setRefundId(String refundId) { this.refundId = refundId; }
 
-    public int getAmountPaisa() { return amountPaisa; }
-    public void setAmountPaisa(int amountPaisa) { this.amountPaisa = amountPaisa; }
+    public long getAmountPaisa() { return amountPaisa; }
+    public void setAmountPaisa(long amountPaisa) { this.amountPaisa = amountPaisa; }
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
@@ -118,7 +118,7 @@ public class RazorpayPayment {
         private String razorpayPaymentId;
         private String razorpaySignature;
         private String refundId;
-        private int amountPaisa;
+        private long amountPaisa;
         private String currency = "INR";
         private String method;
         private RazorpayPaymentStatus status;
@@ -150,7 +150,7 @@ public class RazorpayPayment {
             return this;
         }
 
-        public RazorpayPaymentBuilder amountPaisa(int amountPaisa) {
+        public RazorpayPaymentBuilder amountPaisa(long amountPaisa) {
             this.amountPaisa = amountPaisa;
             return this;
         }

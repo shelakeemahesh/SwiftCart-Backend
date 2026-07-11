@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/activity")
@@ -30,6 +31,7 @@ public class LiveActivityController {
     }
 
     @PostMapping("/event")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> triggerManualEvent(@RequestBody LiveActivityEvent event) {
         liveActivityProducer.publishEvent(event);
         return ResponseEntity.ok().build();

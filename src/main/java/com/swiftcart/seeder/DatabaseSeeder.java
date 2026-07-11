@@ -123,11 +123,14 @@ public class DatabaseSeeder implements CommandLineRunner {
         SUBCAT_TO_ROOT.put("Candles & Fragrances", "Home");
     }
 
-    public DatabaseSeeder(CategoryRepository categoryRepository, ProductRepository productRepository, ProductImageRepository productImageRepository, UserRepository userRepository) {
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    public DatabaseSeeder(CategoryRepository categoryRepository, ProductRepository productRepository, ProductImageRepository productImageRepository, UserRepository userRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -144,7 +147,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             User seller = User.builder()
                 .name("Seed Seller")
                 .email("seller_seed@swiftcart.com")
-                .passwordHash("seed123")
+                .passwordHash(passwordEncoder.encode("seed123"))
                 .role(Role.SELLER)
                 .phone("9999999999")
                 .isVerified(true)

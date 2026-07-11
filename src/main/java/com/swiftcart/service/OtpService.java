@@ -36,13 +36,34 @@ public class OtpService {
     }
 
     public boolean verifyOtp(String phone, String otp) {
+        String attemptsKey = "otp:attempts:" + phone;
+        String attemptsStr = redisService.get(attemptsKey);
+        int attempts = attemptsStr == null ? 0 : Integer.parseInt(attemptsStr);
+
+        if (attempts >= 5) {
+            throw new RuntimeException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
+        }
+
         String otpKey = "otp:" + phone;
         String storedOtp = redisService.get(otpKey);
 
-        if (storedOtp != null && storedOtp.equals(otp)) {
-            redisService.delete(otpKey);
-            return true;
+        if (storedOtp == null) {
+            redisService.incrementAndExpire(attemptsKey, Duration.ofMinutes(10));
+            return false;
         }
-        return false;
+
+        boolean matches = java.security.MessageDigest.isEqual(
+                storedOtp.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                otp.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+
+        if (matches) {
+            redisService.delete(otpKey);
+            redisService.delete(attemptsKey);
+            return true;
+        } else {
+            redisService.incrementAndExpire(attemptsKey, Duration.ofMinutes(10));
+            return false;
+        }
     }
 }

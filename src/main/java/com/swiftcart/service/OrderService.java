@@ -124,8 +124,9 @@ public class OrderService {
                 }
                 
                 product.setStockQty(product.getStockQty() - requestedQty);
-                productRepository.save(product);
             }
+            product.setSoldCount(product.getSoldCount() + requestedQty);
+            productRepository.save(product);
 
             BigDecimal effectiveUnitPrice = pricingService.getEffectiveProductPrice(product);
             if (variant != null) {
@@ -207,17 +208,13 @@ public class OrderService {
         savedOrder.setItems(orderItems);
 
         if (appliedCoupon != null) {
-            appliedCoupon.setUsedCount(appliedCoupon.getUsedCount() + 1);
-            couponRepository.save(appliedCoupon);
+            int updated = couponRepository.incrementUsedCount(appliedCoupon.getId());
+            if (updated == 0) {
+                throw new RuntimeException("Coupon usage limit has been exceeded");
+            }
         }
 
         cartRepository.deleteByUserId(userId);
-
-        for (OrderItem oi : orderItems) {
-            Product p = oi.getProduct();
-            p.setSoldCount(p.getSoldCount() + oi.getQuantity());
-            productRepository.save(p);
-        }
 
         if (orderEventProducer.isKafkaEnabled()) {
             orderEventProducer.publishOrderPlaced(savedOrder.getOrderUuid());
@@ -260,15 +257,19 @@ public class OrderService {
         }
 
         for (OrderItem item : order.getItems()) {
+            Product product = productRepository.findAndLockById(item.getProduct().getId())
+                    .orElseThrow(() -> new RuntimeException("Product no longer exists"));
+            product.setSoldCount(Math.max(0, product.getSoldCount() - item.getQuantity()));
+
             if (item.getVariant() != null) {
-                ProductVariant variant = item.getVariant();
+                ProductVariant variant = variantRepository.findAndLockById(item.getVariant().getId())
+                        .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
                 variant.setStockQty(variant.getStockQty() + item.getQuantity());
                 variantRepository.save(variant);
             } else {
-                Product product = item.getProduct();
                 product.setStockQty(product.getStockQty() + item.getQuantity());
-                productRepository.save(product);
             }
+            productRepository.save(product);
         }
 
         Order saved = orderRepository.save(order);
@@ -316,6 +317,8 @@ public class OrderService {
         Order order = orderRepository.findByOrderUuid(orderUuid)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
+        validateStatusTransition(order.getStatus(), newStatus);
+
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
 
@@ -328,6 +331,41 @@ public class OrderService {
         }
 
         return saved;
+    }
+
+    private void validateStatusTransition(OrderStatus current, OrderStatus next) {
+        if (current == next) {
+            return;
+        }
+        boolean valid = false;
+        switch (current) {
+            case PENDING:
+                valid = (next == OrderStatus.CONFIRMED || next == OrderStatus.CANCELLED);
+                break;
+            case CONFIRMED:
+                valid = (next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED);
+                break;
+            case PROCESSING:
+                valid = (next == OrderStatus.DISPATCHED || next == OrderStatus.CANCELLED);
+                break;
+            case DISPATCHED:
+                valid = (next == OrderStatus.OUT_FOR_DELIVERY);
+                break;
+            case OUT_FOR_DELIVERY:
+                valid = (next == OrderStatus.DELIVERED);
+                break;
+            case DELIVERED:
+                valid = (next == OrderStatus.RETURN_REQUESTED);
+                break;
+            case RETURN_REQUESTED:
+                valid = (next == OrderStatus.RETURNED);
+                break;
+            default:
+                valid = false;
+        }
+        if (!valid) {
+            throw new RuntimeException("Invalid order status transition from " + current + " to " + next);
+        }
     }
 
 }

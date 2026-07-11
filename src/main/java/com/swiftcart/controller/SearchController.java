@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/search")
@@ -47,6 +48,7 @@ public class SearchController {
     }
 
     @PostMapping("/reindex")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> triggerReindex() {
         searchService.reindexAll();
         return ResponseEntity.ok(ApiResponse.success("Reindexing triggered successfully"));

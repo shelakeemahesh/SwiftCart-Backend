@@ -69,11 +69,28 @@ public class AuthService {
             // This comment is written by human not ai - Check fallback in MySQL user record
             User user = userRepository.findByPhone(phone)
                     .orElseThrow(() -> new RuntimeException("Verification failed. Incorrect OTP or user does not exist."));
-            if (user.getOtp() != null && user.getOtp().equals(otp) && user.getOtpExpiresAt().isAfter(LocalDateTime.now())) {
+
+            String attemptsKey = "otp:attempts:" + phone;
+            String attemptsStr = redisService.get(attemptsKey);
+            int attempts = attemptsStr == null ? 0 : Integer.parseInt(attemptsStr);
+
+            if (attempts >= 5) {
+                throw new RuntimeException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
+            }
+
+            boolean matches = user.getOtp() != null && java.security.MessageDigest.isEqual(
+                    user.getOtp().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    otp.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+            );
+
+            if (matches && user.getOtpExpiresAt().isAfter(LocalDateTime.now())) {
                 valid = true;
                 user.setOtp(null);
                 user.setOtpExpiresAt(null);
                 userRepository.save(user);
+                redisService.delete(attemptsKey);
+            } else {
+                redisService.incrementAndExpire(attemptsKey, Duration.ofMinutes(10));
             }
         }
 

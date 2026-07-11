@@ -71,7 +71,7 @@ public class PaymentService {
         try {
             JSONObject orderRequest = new JSONObject();
             
-            int amountPaisa = swiftOrder.getFinalAmount().multiply(BigDecimal.valueOf(100)).intValue();
+            long amountPaisa = swiftOrder.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
             orderRequest.put("amount", amountPaisa);
             orderRequest.put("currency", "INR");
             orderRequest.put("receipt", swiftOrder.getOrderUuid());
@@ -358,7 +358,7 @@ public class PaymentService {
     private boolean verifyWebhookSignature(String payload, String signature, String secret) {
         try {
             String expected = calculateHmacSha256(payload, secret);
-            return expected.equalsIgnoreCase(signature) || signature.contains(expected);
+            return expected.equalsIgnoreCase(signature);
         } catch (Exception e) {
             return false;
         }

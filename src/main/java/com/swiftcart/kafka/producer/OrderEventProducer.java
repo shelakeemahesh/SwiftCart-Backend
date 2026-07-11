@@ -52,7 +52,7 @@ public class OrderEventProducer {
             return;
         }
         log.info("Publishing RatingRecalculation event to Kafka for Product ID: {}", productId);
-        kafkaTemplate.send(KafkaConfig.PRODUCT_RATING_RECALC_TOPIC, String.valueOf(productId), productId);
+        kafkaTemplate.send(KafkaConfig.PRODUCT_RATING_RECALC_TOPIC, String.valueOf(productId), String.valueOf(productId));
     }
 
     public void publishProductIndexing(Long productId) {
@@ -61,7 +61,7 @@ public class OrderEventProducer {
             return;
         }
         log.info("Publishing ProductIndexing event to Kafka for Product ID: {}", productId);
-        kafkaTemplate.send(KafkaConfig.PRODUCT_INDEXING_TOPIC, String.valueOf(productId), productId);
+        kafkaTemplate.send(KafkaConfig.PRODUCT_INDEXING_TOPIC, String.valueOf(productId), String.valueOf(productId));
     }
 
     public void publishOrderConfirmed(com.swiftcart.entity.Order order) {
