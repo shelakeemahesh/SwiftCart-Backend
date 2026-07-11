@@ -143,7 +143,7 @@ public class OrderService {
                     .name(product.getName())
                     .brand(product.getBrand())
                     .sku(variant != null ? variant.getSku() : null)
-                    .imageUrl(product.getImages().isEmpty() ? null : product.getImages().get(0).getImageUrl())
+                    .imageUrl((product.getImages() == null || product.getImages().isEmpty()) ? null : product.getImages().get(0).getImageUrl())
                     .basePrice(effectiveUnitPrice)
                     .mrp(product.getMrp())
                     .build();
@@ -225,15 +225,17 @@ public class OrderService {
         }
 
         log.info("Order placed successfully with UUID: {}", savedOrder.getOrderUuid());
-        try {
-            liveActivityProducer.publishEvent(new LiveActivityEvent(
+        if (liveActivityProducer != null) {
+            try {
+                liveActivityProducer.publishEvent(new LiveActivityEvent(
                     "PURCHASE",
                     savedOrder.getUser() != null ? savedOrder.getUser().getName() : "Customer",
                     orderItems.isEmpty() ? "Product" : (orderItems.get(0).getProduct() != null ? orderItems.get(0).getProduct().getName() : "Product"),
                     savedOrder.getAddress() != null ? savedOrder.getAddress().getCity() : "Bengaluru"
             ));
-        } catch (Exception e) {
-            log.error("Failed to publish live activity event", e);
+            } catch (Exception e) {
+                log.error("Failed to publish live activity event", e);
+            }
         }
         return savedOrder;
     }
