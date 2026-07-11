@@ -34,6 +34,10 @@ spring:
     elasticsearch:
       repositories:
         enabled: "${ELASTICSEARCH_ENABLED:false}"
+    redis:
+      host: "${REDIS_HOST:localhost}"
+      port: "${REDIS_PORT:6379}"
+      password: "${REDIS_PASSWORD:}"
   datasource:
     url: "${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}"
     username: "${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}"
@@ -58,10 +62,6 @@ spring:
     show-sql: false
   cache:
     type: "${SPRING_CACHE_TYPE:redis}"
-  redis:
-    host: "${REDIS_HOST:localhost}"
-    port: "${REDIS_PORT:6379}"
-    password: "${REDIS_PASSWORD:}"
   kafka:
     enabled: "${SPRING_KAFKA_ENABLED:false}"
     bootstrap-servers: "${KAFKA_BROKERS:localhost:9092}"

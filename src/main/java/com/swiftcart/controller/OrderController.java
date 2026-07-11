@@ -75,7 +75,8 @@ public class OrderController {
     @GetMapping("/{orderUuid}")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<ApiResponse<Order>> getOrderDetail(Principal principal, @PathVariable String orderUuid) {
-        Order order = orderService.getOrderDetail(orderUuid);
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        Order order = orderService.getOrderDetail(cleanUuid);
         return ResponseEntity.ok(ApiResponse.success(order));
     }
 
@@ -83,28 +84,31 @@ public class OrderController {
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<ApiResponse<Order>> cancelOrder(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(ApiResponse.success(orderService.cancelOrder(orderUuid, user.getId())));
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        return ResponseEntity.ok(ApiResponse.success(orderService.cancelOrder(cleanUuid, user.getId())));
     }
 
     @PostMapping("/{orderUuid}/return")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<ApiResponse<Order>> requestReturn(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
-        return ResponseEntity.ok(ApiResponse.success(orderService.requestReturn(orderUuid, user.getId())));
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        return ResponseEntity.ok(ApiResponse.success(orderService.requestReturn(cleanUuid, user.getId())));
     }
 
     @GetMapping(value = "/{orderUuid}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<byte[]> downloadInvoice(Principal principal, @PathVariable String orderUuid) {
         User user = getUserFromPrincipal(principal);
-        Order order = orderService.getOrderDetail(orderUuid);
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        Order order = orderService.getOrderDetail(cleanUuid);
 
         String invoiceText = "%PDF-1.4\n" +
                 "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
                 "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n" +
                 "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R >>\nendobj\n" +
                 "4 0 obj\n<< /Length 150 >>\nstream\n" +
-                "BT\n/F1 12 Tf\n70 800 Td\n(SwiftCart Invoice PDF - UUID: " + orderUuid + ") Tj\n" +
+                "BT\n/F1 12 Tf\n70 800 Td\n(SwiftCart Invoice PDF - UUID: " + cleanUuid + ") Tj\n" +
                 "0 -20 Td\n(Customer Name: " + user.getName() + ") Tj\n" +
                 "0 -20 Td\n(Total Amount: Rs. " + order.getFinalAmount() + ") Tj\n" +
                 "0 -20 Td\n(Payment Method: " + order.getPaymentMethod() + ") Tj\n" +
@@ -115,14 +119,15 @@ public class OrderController {
         byte[] pdfBytes = invoiceText.getBytes(StandardCharsets.UTF_8);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + orderUuid + ".pdf\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + cleanUuid + ".pdf\"")
                 .body(pdfBytes);
     }
 
     @GetMapping("/{orderUuid}/tracking")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTrackingEvents(Principal principal, @PathVariable String orderUuid) {
-        return ResponseEntity.ok(ApiResponse.success(deliveryService.getShipmentTrackingEvents(orderUuid)));
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        return ResponseEntity.ok(ApiResponse.success(deliveryService.getShipmentTrackingEvents(cleanUuid)));
     }
 
     @GetMapping("/active")
@@ -162,7 +167,8 @@ public class OrderController {
     @GetMapping("/{orderUuid}/track")
     @PreAuthorize("@swiftSecurity.canCustomerManageOrder(#orderUuid)")
     public ResponseEntity<ApiResponse<OrderTrackingDTO>> getOrderTracking(Principal principal, @PathVariable String orderUuid) {
-        Order order = orderService.getOrderDetail(orderUuid);
+        String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
+        Order order = orderService.getOrderDetail(cleanUuid);
 
         String status = mapStatus(order.getStatus());
         List<TrackingItemDTO> items = new ArrayList<>();
@@ -233,7 +239,7 @@ public class OrderController {
                     timestamp = placedAt.plusHours(12).toString();
                 } else if (i == 3) {
                     timestamp = placedAt.plusHours(36).toString();
-                } else if (i == 4) {
+                } else {
                     timestamp = placedAt.plusHours(48).toString();
                 }
             }

@@ -339,32 +339,16 @@ public class OrderService {
         if (current == next) {
             return;
         }
-        boolean valid = false;
-        switch (current) {
-            case PENDING:
-                valid = (next == OrderStatus.CONFIRMED || next == OrderStatus.CANCELLED);
-                break;
-            case CONFIRMED:
-                valid = (next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED);
-                break;
-            case PROCESSING:
-                valid = (next == OrderStatus.DISPATCHED || next == OrderStatus.CANCELLED);
-                break;
-            case DISPATCHED:
-                valid = (next == OrderStatus.OUT_FOR_DELIVERY);
-                break;
-            case OUT_FOR_DELIVERY:
-                valid = (next == OrderStatus.DELIVERED);
-                break;
-            case DELIVERED:
-                valid = (next == OrderStatus.RETURN_REQUESTED);
-                break;
-            case RETURN_REQUESTED:
-                valid = (next == OrderStatus.RETURNED);
-                break;
-            default:
-                valid = false;
-        }
+        boolean valid = switch (current) {
+            case PENDING -> (next == OrderStatus.CONFIRMED || next == OrderStatus.CANCELLED);
+            case CONFIRMED -> (next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED);
+            case PROCESSING -> (next == OrderStatus.DISPATCHED || next == OrderStatus.CANCELLED);
+            case DISPATCHED -> (next == OrderStatus.OUT_FOR_DELIVERY);
+            case OUT_FOR_DELIVERY -> (next == OrderStatus.DELIVERED);
+            case DELIVERED -> (next == OrderStatus.RETURN_REQUESTED);
+            case RETURN_REQUESTED -> (next == OrderStatus.RETURNED);
+            default -> false;
+        };
         if (!valid) {
             throw new RuntimeException("Invalid order status transition from " + current + " to " + next);
         }

@@ -19,9 +19,12 @@ public class PricingService {
     private final CouponRepository couponRepository;
     private final FlashSaleRepository flashSaleRepository;
 
-    @org.springframework.beans.factory.annotation.Autowired
-    @org.springframework.context.annotation.Lazy
     private PricingService self;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@org.springframework.context.annotation.Lazy PricingService self) {
+        this.self = self;
+    }
 
     public PricingService(CouponRepository couponRepository, FlashSaleRepository flashSaleRepository) {
         this.couponRepository = couponRepository;
@@ -82,8 +85,7 @@ public class PricingService {
                 discount = orderValue;
             }
         } else if (coupon.getType() == CouponType.FREE_DELIVERY) {
-            
-            discount = BigDecimal.ZERO; 
+            // Free delivery has zero additional discount
         }
 
         return discount;

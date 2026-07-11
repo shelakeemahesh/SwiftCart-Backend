@@ -45,7 +45,7 @@ public class CartService {
         if (variantId != null) {
             variant = variantRepository.findById(variantId)
                     .orElseThrow(() -> new RuntimeException("Product variant not found"));
-            if (variant.getProduct().getId() != product.getId()) {
+            if (!variant.getProduct().getId().equals(product.getId())) {
                 throw new RuntimeException("Variant does not belong to the selected product");
             }
         }

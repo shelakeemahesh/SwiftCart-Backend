@@ -51,6 +51,13 @@ public class ProductService {
     private final FlashSaleRepository flashSaleRepository;
     private final PriceHistoryService priceHistoryService;
 
+    private ProductService self;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@org.springframework.context.annotation.Lazy ProductService self) {
+        this.self = self;
+    }
+
     public ProductService(
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
@@ -324,7 +331,7 @@ public class ProductService {
         try {
             List<com.swiftcart.entity.Review> reviews = reviewRepository.findByProductId(productId);
             if (reviews.isEmpty()) {
-                recalculateAverageRating(productId, BigDecimal.ZERO, 0);
+                self.recalculateAverageRating(productId, BigDecimal.ZERO, 0);
                 return;
             }
 
@@ -336,7 +343,7 @@ public class ProductService {
             BigDecimal averageRating = BigDecimal.valueOf(average).setScale(2, java.math.RoundingMode.HALF_UP);
             int count = reviews.size();
 
-            recalculateAverageRating(productId, averageRating, count);
+            self.recalculateAverageRating(productId, averageRating, count);
         } catch (Exception e) {
             log.error("Failed to recalculate rating for product ID {}: {}", productId, e.getMessage());
         }

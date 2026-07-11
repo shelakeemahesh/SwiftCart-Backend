@@ -21,6 +21,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         this.redisTemplate = redisTemplate;
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RateLimitingFilter.class);
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -48,7 +50,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-
+            log.warn("Redis rate limiting failed for IP {}, bypassing check: {}", ip, e.getMessage());
         }
 
         filterChain.doFilter(request, response);

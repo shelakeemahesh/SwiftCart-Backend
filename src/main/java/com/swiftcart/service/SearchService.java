@@ -35,9 +35,12 @@ public class SearchService {
     private final ProductRepository productRepository;
     private final ElasticsearchOperations elasticsearchOperations;
 
-    @org.springframework.beans.factory.annotation.Autowired
-    @org.springframework.context.annotation.Lazy
     private SearchService self;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@org.springframework.context.annotation.Lazy SearchService self) {
+        this.self = self;
+    }
 
     public SearchService(
             Optional<ProductSearchRepository> searchRepository,

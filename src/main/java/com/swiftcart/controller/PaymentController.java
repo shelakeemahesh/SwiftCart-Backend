@@ -46,7 +46,11 @@ public class PaymentController {
     @PostMapping("/razorpay/webhook")
     public ResponseEntity<ApiResponse<Void>> handleWebhook(
             @RequestBody String payload,
-            @RequestHeader("X-Razorpay-Signature") String signature) {
+            @RequestHeader Map<String, String> headers) {
+        String signature = headers.get("x-razorpay-signature");
+        if (signature == null) {
+            signature = headers.get("X-Razorpay-Signature");
+        }
         paymentService.processWebhook(payload, signature);
         return ResponseEntity.ok(ApiResponse.success(null));
     }

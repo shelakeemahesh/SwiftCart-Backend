@@ -190,7 +190,7 @@ public class AdminController {
         
         sales.forEach(fs -> {
             if (fs.getProduct() != null) {
-                fs.getProduct().getName();
+                org.hibernate.Hibernate.initialize(fs.getProduct());
             }
         });
         return ResponseEntity.ok(ApiResponse.success(sales));

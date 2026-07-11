@@ -14,13 +14,13 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
-  redis:
-    host: localhost
-    port: 6379
   data:
     elasticsearch:
       repositories:
         enabled: false
+    redis:
+      host: localhost
+      port: 6379
   kafka:
     enabled: false
 
