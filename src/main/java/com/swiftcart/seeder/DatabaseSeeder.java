@@ -155,6 +155,18 @@ public class DatabaseSeeder implements CommandLineRunner {
             return userRepository.save(seller);
         });
 
+        User defaultAdmin = userRepository.findByEmail("admin@swiftcart.com").orElseGet(() -> {
+            User admin = User.builder()
+                .name("SwiftCart Admin")
+                .email("admin@swiftcart.com")
+                .passwordHash(passwordEncoder.encode("admin123"))
+                .role(Role.ADMIN)
+                .phone("8888888888")
+                .isVerified(true)
+                .build();
+            return userRepository.save(admin);
+        });
+
         Map<String, Category> rootCategories = new HashMap<>();
         for (int i = 0; i < ROOT_CATEGORIES.length; i++) {
             String rootName = ROOT_CATEGORIES[i];
