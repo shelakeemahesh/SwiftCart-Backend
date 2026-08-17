@@ -57,4 +57,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT p.name FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :prefix, '%')) AND p.isActive = true")
     List<String> findNamesByPrefix(@Param("prefix") String prefix, Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.images")
+    List<Product> findAllForVectorIndexing();
 }

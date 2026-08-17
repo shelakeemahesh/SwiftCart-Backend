@@ -82,7 +82,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/payments/razorpay/webhook").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/chat/return-policy").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/chat/message").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/chat/message", "/api/v1/chat/ask").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/chat/sync-catalog").hasRole("ADMIN")
                 .requestMatchers("/api/v1/chat/cancel-order").authenticated()
                 
                 .requestMatchers("/api/v1/seller/**").hasAnyRole("SELLER", "ADMIN")

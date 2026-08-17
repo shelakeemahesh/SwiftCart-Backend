@@ -34,18 +34,28 @@ public class SellerController {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final com.swiftcart.service.OrderService orderService;
+    private final com.swiftcart.service.sentiment.SentimentAnalyticsService sentimentAnalyticsService;
 
     public SellerController(
             ProductService productService,
             ProductRepository productRepository,
             OrderRepository orderRepository,
             UserRepository userRepository,
-            com.swiftcart.service.OrderService orderService) {
+            com.swiftcart.service.OrderService orderService,
+            com.swiftcart.service.sentiment.SentimentAnalyticsService sentimentAnalyticsService) {
         this.productService = productService;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.orderService = orderService;
+        this.sentimentAnalyticsService = sentimentAnalyticsService;
+    }
+
+    @GetMapping("/sentiment-insights")
+    public ResponseEntity<ApiResponse<com.swiftcart.dto.response.VendorRiskDTO>> getSentimentInsights(Principal principal) {
+        User seller = getUserFromPrincipal(principal);
+        com.swiftcart.dto.response.VendorRiskDTO insights = sentimentAnalyticsService.getSellerSentimentInsights(seller.getId());
+        return ResponseEntity.ok(ApiResponse.success(insights));
     }
 
     @GetMapping("/dashboard")

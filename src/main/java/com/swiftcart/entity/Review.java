@@ -57,6 +57,17 @@ public class Review {
     @Column(name = "is_verified_purchase")
     private boolean isVerifiedPurchase = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sentiment", length = 20)
+    private ReviewSentiment sentiment;
+
+    @Column(name = "sentiment_score")
+    private Double sentimentScore;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "detected_aspects", columnDefinition = "json")
+    private List<String> detectedAspects = new ArrayList<>();
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -93,6 +104,15 @@ public class Review {
     public boolean isVerifiedPurchase() { return isVerifiedPurchase; }
     public void setVerifiedPurchase(boolean verifiedPurchase) { isVerifiedPurchase = verifiedPurchase; }
 
+    public ReviewSentiment getSentiment() { return sentiment; }
+    public void setSentiment(ReviewSentiment sentiment) { this.sentiment = sentiment; }
+
+    public Double getSentimentScore() { return sentimentScore; }
+    public void setSentimentScore(Double sentimentScore) { this.sentimentScore = sentimentScore; }
+
+    public List<String> getDetectedAspects() { return detectedAspects; }
+    public void setDetectedAspects(List<String> detectedAspects) { this.detectedAspects = detectedAspects; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -110,6 +130,9 @@ public class Review {
         private List<String> images = new ArrayList<>();
         private int helpfulCount = 0;
         private boolean isVerifiedPurchase = false;
+        private ReviewSentiment sentiment;
+        private Double sentimentScore;
+        private List<String> detectedAspects = new ArrayList<>();
 
         public ReviewBuilder product(Product product) {
             this.product = product;
@@ -156,6 +179,21 @@ public class Review {
             return this;
         }
 
+        public ReviewBuilder sentiment(ReviewSentiment sentiment) {
+            this.sentiment = sentiment;
+            return this;
+        }
+
+        public ReviewBuilder sentimentScore(Double sentimentScore) {
+            this.sentimentScore = sentimentScore;
+            return this;
+        }
+
+        public ReviewBuilder detectedAspects(List<String> detectedAspects) {
+            this.detectedAspects = detectedAspects;
+            return this;
+        }
+
         public Review build() {
             Review review = new Review();
             review.setProduct(this.product);
@@ -167,6 +205,9 @@ public class Review {
             if (this.images != null) review.setImages(this.images);
             review.setHelpfulCount(this.helpfulCount);
             review.setVerifiedPurchase(this.isVerifiedPurchase);
+            review.setSentiment(this.sentiment);
+            review.setSentimentScore(this.sentimentScore);
+            if (this.detectedAspects != null) review.setDetectedAspects(this.detectedAspects);
             return review;
         }
     }

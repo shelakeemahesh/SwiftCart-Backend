@@ -131,6 +131,17 @@ app:
     domain: "${FRONTEND_URL:http://localhost:5173}"
   oauth2:
     authorizedRedirectUris: "${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback}"
+  ai:
+    rag:
+      enabled: "${AI_RAG_ENABLED:true}"
+      top-k: "${AI_RAG_TOP_K:5}"
+    openai:
+      api-key: "${OPENAI_API_KEY:}"
+      model: "${OPENAI_CHAT_MODEL:gpt-4o-mini}"
+      base-url: "${OPENAI_BASE_URL:https://api.openai.com}"
+    sentiment:
+      vendor-risk-threshold: "${VENDOR_RISK_NEGATIVE_THRESHOLD:0.25}"
+      min-reviews-for-risk: "${VENDOR_MIN_REVIEWS_FOR_RISK:3}"
 
 twilio:
   account-sid: "${TWILIO_ACCOUNT_SID:YOUR_TWILIO_ACCOUNT_SID}"

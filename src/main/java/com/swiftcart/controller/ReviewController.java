@@ -1,6 +1,7 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.dto.response.ProductSentimentSummaryDTO;
 import com.swiftcart.entity.Order;
 import com.swiftcart.enums.OrderStatus;
 import com.swiftcart.entity.Product;
@@ -11,6 +12,8 @@ import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.ProductService;
+import com.swiftcart.service.sentiment.LingPipeSentimentService;
+import com.swiftcart.service.sentiment.SentimentAnalyticsService;
 import com.swiftcart.kafka.producer.OrderEventProducer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +36,8 @@ public class ReviewController {
     private final UserRepository userRepository;
     private final ProductService productService;
     private final OrderEventProducer orderEventProducer;
+    private final LingPipeSentimentService lingPipeSentimentService;
+    private final SentimentAnalyticsService sentimentAnalyticsService;
 
     public ReviewController(
             ReviewRepository reviewRepository,
@@ -40,13 +45,17 @@ public class ReviewController {
             ProductRepository productRepository,
             UserRepository userRepository,
             ProductService productService,
-            OrderEventProducer orderEventProducer) {
+            OrderEventProducer orderEventProducer,
+            LingPipeSentimentService lingPipeSentimentService,
+            SentimentAnalyticsService sentimentAnalyticsService) {
         this.reviewRepository = reviewRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.productService = productService;
         this.orderEventProducer = orderEventProducer;
+        this.lingPipeSentimentService = lingPipeSentimentService;
+        this.sentimentAnalyticsService = sentimentAnalyticsService;
     }
 
     @GetMapping("/products/{productId}")
@@ -60,6 +69,12 @@ public class ReviewController {
             return ResponseEntity.ok(ApiResponse.success(reviewRepository.findByProductIdAndRating(productId, rating, pageRequest)));
         }
         return ResponseEntity.ok(ApiResponse.success(reviewRepository.findByProductId(productId, pageRequest)));
+    }
+
+    @GetMapping("/products/{productId}/sentiment")
+    public ResponseEntity<ApiResponse<ProductSentimentSummaryDTO>> getProductSentiment(@PathVariable Long productId) {
+        ProductSentimentSummaryDTO summary = sentimentAnalyticsService.getProductSentimentSummary(productId);
+        return ResponseEntity.ok(ApiResponse.success(summary));
     }
 
     @PostMapping("/products/{productId}")
@@ -89,6 +104,13 @@ public class ReviewController {
             throw new RuntimeException("Review already submitted for this product order");
         }
 
+        // Run LingPipe sentiment classification
+        LingPipeSentimentService.SentimentResult sentimentResult = lingPipeSentimentService.analyzeReview(
+                reviewRequest.getTitle(),
+                reviewRequest.getBody(),
+                reviewRequest.getRating()
+        );
+
         Review review = Review.builder()
                 .product(product)
                 .user(user)
@@ -98,6 +120,9 @@ public class ReviewController {
                 .body(reviewRequest.getBody())
                 .images(reviewRequest.getImages())
                 .isVerifiedPurchase(true)
+                .sentiment(sentimentResult.sentiment())
+                .sentimentScore(sentimentResult.confidenceScore())
+                .detectedAspects(sentimentResult.aspects())
                 .build();
 
         Review saved = reviewRepository.save(review);
@@ -124,6 +149,17 @@ public class ReviewController {
         review.setTitle(updated.getTitle());
         review.setBody(updated.getBody());
         review.setRating(updated.getRating());
+
+        // Re-classify sentiment with updated content
+        LingPipeSentimentService.SentimentResult sentimentResult = lingPipeSentimentService.analyzeReview(
+                updated.getTitle(),
+                updated.getBody(),
+                updated.getRating()
+        );
+        review.setSentiment(sentimentResult.sentiment());
+        review.setSentimentScore(sentimentResult.confidenceScore());
+        review.setDetectedAspects(sentimentResult.aspects());
+
         Review saved = reviewRepository.save(review);
 
         if (orderEventProducer.isKafkaEnabled()) {

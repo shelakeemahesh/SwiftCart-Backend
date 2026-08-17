@@ -40,6 +40,7 @@ public class AdminController {
     private final CouponRepository couponRepository;
     private final FlashSaleRepository flashSaleRepository;
     private final ProductService productService;
+    private final com.swiftcart.service.sentiment.SentimentAnalyticsService sentimentAnalyticsService;
 
     public AdminController(
             UserRepository userRepository,
@@ -47,13 +48,27 @@ public class AdminController {
             OrderRepository orderRepository,
             CouponRepository couponRepository,
             FlashSaleRepository flashSaleRepository,
-            ProductService productService) {
+            ProductService productService,
+            com.swiftcart.service.sentiment.SentimentAnalyticsService sentimentAnalyticsService) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.couponRepository = couponRepository;
         this.flashSaleRepository = flashSaleRepository;
         this.productService = productService;
+        this.sentimentAnalyticsService = sentimentAnalyticsService;
+    }
+
+    @GetMapping("/sentiment/overview")
+    public ResponseEntity<ApiResponse<com.swiftcart.dto.response.PlatformSentimentOverviewDTO>> getSentimentOverview() {
+        return ResponseEntity.ok(ApiResponse.success(sentimentAnalyticsService.getPlatformSentimentOverview()));
+    }
+
+    @PostMapping("/reviews/batch-sentiment-analysis")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchSentimentAnalysis(
+            @RequestParam(defaultValue = "false") boolean forceReanalyzeAll) {
+        Map<String, Object> result = sentimentAnalyticsService.batchAnalyzeReviews(forceReanalyzeAll);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/users")
