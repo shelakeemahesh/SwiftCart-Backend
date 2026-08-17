@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Component
@@ -146,7 +147,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         if (!needsReSeed) {
             Optional<Product> sample = productRepository.findAll().stream().findFirst();
-            if (sample.isPresent() && !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony")) {
+            if (sample.isPresent() && (sample.get().getSoldCount() == 0 || !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony"))) {
                 needsReSeed = true;
             }
         }
@@ -206,7 +207,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         List<CuratedSeedData.SeedItem> seedItems = CuratedSeedData.getCuratedProducts();
         int seededCount = 0;
 
-        for (CuratedSeedData.SeedItem item : seedItems) {
+        for (int idx = 0; idx < seedItems.size(); idx++) {
+            CuratedSeedData.SeedItem item = seedItems.get(idx);
             Category category = rootCategories.get(item.category);
             if (category == null) {
                 category = rootCategories.get("Home");
@@ -226,7 +228,17 @@ public class DatabaseSeeder implements CommandLineRunner {
             product.setDescription(item.description);
             product.setSeller(defaultSeller);
             product.setActive(true);
-            product.setFeatured(true);
+            product.setFeatured(idx % 3 == 0);
+            
+            // Calculate realistic sold count and staggered creation date
+            // Items at beginning of category list (latest flagships) have fresh createdAt
+            int categoryItemIndex = idx % 15;
+            int daysAgo = categoryItemIndex == 0 ? 1 : (categoryItemIndex == 1 ? 2 : (categoryItemIndex * 2 + 1));
+            int calculatedSoldCount = Math.max(50, (int) (item.reviewCount * 3.5) + (15 - categoryItemIndex) * 40);
+            
+            product.setSoldCount(calculatedSoldCount);
+            product.setCreatedAt(LocalDateTime.now().minusDays(daysAgo).minusHours(idx % 12));
+            product.setUpdatedAt(LocalDateTime.now().minusDays(daysAgo / 2));
             product.setSlug(toSlug(item.name) + "-" + UUID.randomUUID().toString().substring(0, 8));
 
             product = productRepository.save(product);

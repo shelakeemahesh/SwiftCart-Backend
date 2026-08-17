@@ -173,23 +173,40 @@ public class ProductService {
         return products;
     }
 
+    @Transactional(readOnly = true)
     @Cacheable(value = "trendingProducts")
     public List<Product> getTrendingProducts() {
-        return productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
+        List<Product> list = productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
+        list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
+        return list;
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "bestSellers")
+    public List<Product> getBestSellers() {
+        List<Product> list = productRepository.findTop20ByIsActiveTrueOrderByAverageRatingDesc();
+        list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
+        return list;
+    }
+
+    @Transactional(readOnly = true)
     @Cacheable(value = "newArrivals")
     public List<Product> getNewArrivals() {
-        return productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
+        List<Product> list = productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
+        list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
+        return list;
     }
 
+    @Transactional(readOnly = true)
     @Cacheable(value = "flashDeals")
     public List<Product> getFlashDeals() {
         List<FlashSale> activeSales = flashSaleRepository.findActiveFlashSales(LocalDateTime.now());
-        return activeSales.stream()
+        List<Product> list = activeSales.stream()
                 .map(FlashSale::getProduct)
                 .filter(Product::isActive)
                 .collect(java.util.stream.Collectors.toList());
+        list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
+        return list;
     }
 
     @Cacheable(value = "productDetails", key = "#slug")

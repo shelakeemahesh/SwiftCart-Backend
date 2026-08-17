@@ -109,6 +109,11 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(productService.getTrendingProducts()));
     }
 
+    @GetMapping("/best-sellers")
+    public ResponseEntity<ApiResponse<List<Product>>> getBestSellers() {
+        return ResponseEntity.ok(ApiResponse.success(productService.getBestSellers()));
+    }
+
     @GetMapping("/new-arrivals")
     public ResponseEntity<ApiResponse<List<Product>>> getNewArrivals() {
         return ResponseEntity.ok(ApiResponse.success(productService.getNewArrivals()));

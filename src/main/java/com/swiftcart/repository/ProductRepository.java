@@ -39,20 +39,23 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     boolean existsBySlug(String slug);
 
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     List<Product> findTop20ByIsActiveTrueOrderBySoldCountDesc();
 
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     List<Product> findTop20ByIsActiveTrueOrderByCreatedAtDesc();
 
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
+    List<Product> findTop20ByIsActiveTrueOrderByAverageRatingDesc();
+
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     List<Product> findByCategoryIdAndIsActiveTrue(Long categoryId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     @Query("SELECT p FROM Product p WHERE p.category.id = :categoryId AND p.id <> :productId AND p.isActive = true")
     List<Product> findRelatedProducts(@Param("categoryId") Long categoryId, @Param("productId") Long productId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     List<Product> findBySellerId(Long sellerId, Pageable pageable);
 
     @Query("SELECT p.name FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :prefix, '%')) AND p.isActive = true")
