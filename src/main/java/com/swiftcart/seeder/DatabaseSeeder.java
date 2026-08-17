@@ -80,26 +80,15 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        long currentCount = productRepository.count();
-        boolean needsReSeed = (currentCount != 120);
-
-        if (!needsReSeed) {
-            Optional<Product> sample = productRepository.findAll().stream().findFirst();
-            if (sample.isPresent() && !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony")) {
-                needsReSeed = true;
-            }
-        }
-
-        if (!needsReSeed) {
-            log.info("Database already seeded with 120 curated products. Skipping seeder...");
-            return;
-        }
-
-        log.info("Starting curated catalog database seeding (15 products per category across 8 categories = 120 items)...");
-
-        // 1. Seed Users
+        // 1. Always Ensure Seed Users (Admin & Seller) Exist with Verified Status & Updated Passwords
         User defaultSeller = userRepository.findByEmail("seller_seed@swiftcart.com")
                 .or(() -> userRepository.findByPhone("9999999999"))
+                .map(s -> {
+                    s.setPasswordHash(passwordEncoder.encode("seed123"));
+                    s.setRole(Role.SELLER);
+                    s.setVerified(true);
+                    return userRepository.save(s);
+                })
                 .orElseGet(() -> {
                     User seller = User.builder()
                             .name("Seed Seller")
@@ -114,6 +103,12 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         userRepository.findByEmail("admin@swiftcart.com")
                 .or(() -> userRepository.findByPhone("8888888888"))
+                .map(a -> {
+                    a.setPasswordHash(passwordEncoder.encode("admin123"));
+                    a.setRole(Role.ADMIN);
+                    a.setVerified(true);
+                    return userRepository.save(a);
+                })
                 .orElseGet(() -> {
                     User admin = User.builder()
                             .name("SwiftCart Admin")
@@ -128,6 +123,12 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         userRepository.findByEmail("mahesh@swiftcart.com")
                 .or(() -> userRepository.findByPhone("9503072201"))
+                .map(m -> {
+                    m.setPasswordHash(passwordEncoder.encode("admin123"));
+                    m.setRole(Role.ADMIN);
+                    m.setVerified(true);
+                    return userRepository.save(m);
+                })
                 .orElseGet(() -> {
                     User admin = User.builder()
                             .name("Mahesh Admin")
@@ -139,6 +140,23 @@ public class DatabaseSeeder implements CommandLineRunner {
                             .build();
                     return userRepository.save(admin);
                 });
+
+        long currentCount = productRepository.count();
+        boolean needsReSeed = (currentCount != 120);
+
+        if (!needsReSeed) {
+            Optional<Product> sample = productRepository.findAll().stream().findFirst();
+            if (sample.isPresent() && !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony")) {
+                needsReSeed = true;
+            }
+        }
+
+        if (!needsReSeed) {
+            log.info("Database already seeded with 120 curated products. Skipping product catalog seeder...");
+            return;
+        }
+
+        log.info("Starting curated catalog database seeding (15 products per category across 8 categories = 120 items)...");
 
         // 2. Ensure the 8 Root Categories exist
         Map<String, Category> rootCategories = new HashMap<>();

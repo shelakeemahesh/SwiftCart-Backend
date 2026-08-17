@@ -32,8 +32,8 @@ public class ApiIntegrationTest {
         
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setName("Test Customer");
-        registerRequest.setEmail("test_integration_customer@swiftcart.com");
-        registerRequest.setPhone("9876543210");
+        registerRequest.setEmail("test_integration_customer_isolated@swiftcart.com");
+        registerRequest.setPhone("9870001111");
         registerRequest.setPassword("password123");
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -43,9 +43,9 @@ public class ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.message").value("User registered successfully. Please verify your phone number via OTP."));
 
         mockMvc.perform(post("/api/v1/auth/send-otp")
-                .param("phone", "9876543210"))
+                .param("phone", "9870001111"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.message").value("OTP sent successfully to phone 9876543210"));
+                .andExpect(jsonPath("$.data.message").value("OTP sent successfully to phone 9870001111"));
 
     }
 
@@ -53,8 +53,8 @@ public class ApiIntegrationTest {
     void testSellerRegistrationFlow() throws Exception {
         SellerRegisterRequest request = new SellerRegisterRequest();
         request.setName("Test Seller");
-        request.setEmail("test_integration_seller@swiftcart.com");
-        request.setPhone("9876543211");
+        request.setEmail("test_integration_seller_isolated@swiftcart.com");
+        request.setPhone("9870002222");
         request.setPassword("password123");
         request.setBusinessName("Test Business");
         request.setGstin("22AAAAA0000A1Z5");

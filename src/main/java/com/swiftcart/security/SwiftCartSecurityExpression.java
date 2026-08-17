@@ -54,6 +54,11 @@ public class SwiftCartSecurityExpression {
         if (currentUser.getRole() == Role.ADMIN) return true;
 
         Optional<Order> orderOpt = orderRepository.findByOrderUuid(orderUuid);
+        if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
+            try {
+                orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
+            } catch (Exception ignored) {}
+        }
         if (orderOpt.isEmpty()) return false;
         return currentUser.getId().equals(orderOpt.get().getUser().getId());
     }
@@ -64,6 +69,11 @@ public class SwiftCartSecurityExpression {
         if (currentUser.getRole() == Role.ADMIN) return true;
 
         Optional<Order> orderOpt = orderRepository.findByOrderUuid(orderUuid);
+        if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
+            try {
+                orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
+            } catch (Exception ignored) {}
+        }
         if (orderOpt.isEmpty()) return false;
 
         Order order = orderOpt.get();

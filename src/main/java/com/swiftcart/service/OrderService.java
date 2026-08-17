@@ -72,8 +72,13 @@ public class OrderService {
     }
 
     public Order getOrderDetail(String orderUuid) {
-        return orderRepository.findByOrderUuid(orderUuid)
-                .orElseThrow(() -> new RuntimeException("Order not found with UUID: " + orderUuid));
+        java.util.Optional<Order> orderOpt = orderRepository.findByOrderUuid(orderUuid);
+        if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
+            try {
+                orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
+            } catch (Exception ignored) {}
+        }
+        return orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
     }
 
     @Transactional
@@ -242,8 +247,13 @@ public class OrderService {
 
     @Transactional
     public Order cancelOrder(String orderUuid, Long userId) {
-        Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+        java.util.Optional<Order> orderOpt = orderRepository.findAndLockByOrderUuid(orderUuid);
+        if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
+            try {
+                orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
+            } catch (Exception ignored) {}
+        }
+        Order order = orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
 
         if (!order.getUser().getId().equals(userId)) {
             throw new RuntimeException("Unauthorized cancel request");
@@ -265,7 +275,7 @@ public class OrderService {
 
             if (item.getVariant() != null) {
                 ProductVariant variant = variantRepository.findAndLockById(item.getVariant().getId())
-                        .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
+                    .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
                 variant.setStockQty(variant.getStockQty() + item.getQuantity());
                 variantRepository.save(variant);
             } else {
@@ -289,8 +299,13 @@ public class OrderService {
 
     @Transactional
     public Order requestReturn(String orderUuid, Long userId) {
-        Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+        java.util.Optional<Order> orderOpt = orderRepository.findAndLockByOrderUuid(orderUuid);
+        if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
+            try {
+                orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
+            } catch (Exception ignored) {}
+        }
+        Order order = orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
 
         if (!order.getUser().getId().equals(userId)) {
             throw new RuntimeException("Unauthorized return request");

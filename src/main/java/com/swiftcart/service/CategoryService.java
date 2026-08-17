@@ -33,8 +33,13 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public Category getCategoryBySlug(String slug) {
-        return categoryRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Category not found with slug: " + slug));
+        java.util.Optional<Category> catOpt = categoryRepository.findBySlug(slug);
+        if (catOpt.isEmpty() && slug != null && slug.matches("\\d+")) {
+            try {
+                catOpt = categoryRepository.findById(Long.parseLong(slug));
+            } catch (Exception ignored) {}
+        }
+        return catOpt.orElseThrow(() -> new RuntimeException("Category not found with identifier: " + slug));
     }
 
     @Transactional

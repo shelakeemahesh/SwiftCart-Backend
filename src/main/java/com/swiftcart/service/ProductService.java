@@ -194,9 +194,14 @@ public class ProductService {
 
     @Cacheable(value = "productDetails", key = "#slug")
     public Product getProductBySlug(String slug) {
-        log.info("Fetching product details from database for slug: {}", slug);
-        return productRepository.findBySlugWithDetails(slug)
-                .orElseThrow(() -> new RuntimeException("Product not found with slug: " + slug));
+        log.info("Fetching product details from database for slug or id: {}", slug);
+        java.util.Optional<Product> productOpt = productRepository.findBySlugWithDetails(slug);
+        if (productOpt.isEmpty() && slug != null && slug.matches("\\d+")) {
+            try {
+                productOpt = productRepository.findByIdWithDetails(Long.parseLong(slug));
+            } catch (Exception ignored) {}
+        }
+        return productOpt.orElseThrow(() -> new RuntimeException("Product not found with identifier: " + slug));
     }
 
     @Transactional

@@ -60,13 +60,13 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Password changed successfully")));
     }
 
-    @GetMapping("/me/addresses")
+    @GetMapping({"/me/addresses", "/addresses"})
     public ResponseEntity<ApiResponse<List<Address>>> listAddresses(Principal principal) {
         User user = getUserFromPrincipal(principal);
         return ResponseEntity.ok(ApiResponse.success(addressRepository.findByUserIdOrderByIsDefaultDescCreatedAtDesc(user.getId())));
     }
 
-    @PostMapping("/me/addresses")
+    @PostMapping({"/me/addresses", "/addresses"})
     @Transactional
     public ResponseEntity<ApiResponse<Address>> addAddress(Principal principal, @RequestBody Address address) {
         User user = getUserFromPrincipal(principal);
@@ -80,7 +80,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
 
-    @PutMapping("/me/addresses/{id}")
+    @PutMapping({"/me/addresses/{id}", "/addresses/{id}"})
     @Transactional
     public ResponseEntity<ApiResponse<Address>> updateAddress(Principal principal, @PathVariable Long id, @RequestBody Address updatedAddress) {
         User user = getUserFromPrincipal(principal);
@@ -108,7 +108,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(addressRepository.save(address)));
     }
 
-    @DeleteMapping("/me/addresses/{id}")
+    @DeleteMapping({"/me/addresses/{id}", "/addresses/{id}"})
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
@@ -122,7 +122,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Address deleted successfully")));
     }
 
-    @PutMapping("/me/addresses/{id}/default")
+    @PutMapping({"/me/addresses/{id}/default", "/addresses/{id}/default"})
     @Transactional
     public ResponseEntity<ApiResponse<Map<String, String>>> setDefaultAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);

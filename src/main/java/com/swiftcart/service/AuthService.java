@@ -267,16 +267,17 @@ public class AuthService {
     }
 
     public UserResponse getCurrentUser(String username) {
-        User user;
-        try {
-            Long id = Long.parseLong(username);
-            user = userRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
-        } catch (NumberFormatException e) {
-            user = userRepository.findByPhone(username)
-                    .or(() -> userRepository.findByEmail(username))
-                    .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
-        }
+        User user = userRepository.findByPhone(username)
+                .or(() -> userRepository.findByEmail(username))
+                .or(() -> {
+                    try {
+                        Long id = Long.parseLong(username);
+                        return userRepository.findById(id);
+                    } catch (NumberFormatException e) {
+                        return java.util.Optional.empty();
+                    }
+                })
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
         return new UserResponse(
                 user.getId(),
                 user.getName(),
