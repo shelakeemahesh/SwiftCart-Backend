@@ -1,6 +1,7 @@
 package com.swiftcart.seeder;
 
 import com.swiftcart.entity.Category;
+import com.swiftcart.entity.FlashSale;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.ProductImage;
 import com.swiftcart.entity.User;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -143,17 +145,10 @@ public class DatabaseSeeder implements CommandLineRunner {
                 });
 
         long currentCount = productRepository.count();
-        boolean needsReSeed = (currentCount != 120);
+        boolean needsReSeed = (currentCount != 120 || flashSaleRepository.count() == 0);
 
         if (!needsReSeed) {
-            Optional<Product> sample = productRepository.findAll().stream().findFirst();
-            if (sample.isPresent() && (sample.get().getSoldCount() == 0 || !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony"))) {
-                needsReSeed = true;
-            }
-        }
-
-        if (!needsReSeed) {
-            log.info("Database already seeded with 120 curated products. Skipping product catalog seeder...");
+            log.info("Database already seeded with 120 curated products and flash sales. Skipping product catalog seeder...");
             return;
         }
 
@@ -205,7 +200,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         // 4. Seed all 120 Curated Products
         List<CuratedSeedData.SeedItem> seedItems = CuratedSeedData.getCuratedProducts();
-        int seededCount = 0;
+        List<Product> savedProducts = new ArrayList<>();
 
         for (int idx = 0; idx < seedItems.size(); idx++) {
             CuratedSeedData.SeedItem item = seedItems.get(idx);
@@ -221,7 +216,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             product.setBasePrice(item.price);
             product.setMrp(item.mrp);
             product.setStockQty(item.stockQty);
-            product.setAverageRating(item.rating);
             product.setReviewCount(item.reviewCount);
             product.setHighlights(item.highlights);
             product.setSpecifications(item.specifications);
@@ -229,16 +223,59 @@ public class DatabaseSeeder implements CommandLineRunner {
             product.setSeller(defaultSeller);
             product.setActive(true);
             product.setFeatured(idx % 3 == 0);
-            
-            // Calculate realistic sold count and staggered creation date
-            // Items at beginning of category list (latest flagships) have fresh createdAt
-            int categoryItemIndex = idx % 15;
-            int daysAgo = categoryItemIndex == 0 ? 1 : (categoryItemIndex == 1 ? 2 : (categoryItemIndex * 2 + 1));
-            int calculatedSoldCount = Math.max(50, (int) (item.reviewCount * 3.5) + (15 - categoryItemIndex) * 40);
-            
+
+            // Distinct metric assignments for clear separation between Trending, Best Sellers, and New Arrivals
+            int calculatedSoldCount = 150;
+            BigDecimal assignedRating = item.rating;
+            LocalDateTime assignedCreatedAt = LocalDateTime.now().minusDays(10 + (idx % 20));
+
+            // Trending Now (highest soldCount)
+            if (idx == 0) { calculatedSoldCount = 4950; }
+            else if (idx == 16) { calculatedSoldCount = 4850; }
+            else if (idx == 105) { calculatedSoldCount = 4800; }
+            else if (idx == 60) { calculatedSoldCount = 4700; }
+            else if (idx == 83) { calculatedSoldCount = 4600; }
+            else if (idx == 31) { calculatedSoldCount = 4500; }
+            else if (idx == 47) { calculatedSoldCount = 4400; }
+            else if (idx == 91) { calculatedSoldCount = 4300; }
+            else if (idx == 2) { calculatedSoldCount = 4200; }
+            else if (idx == 18) { calculatedSoldCount = 4100; }
+            else if (idx == 63) { calculatedSoldCount = 4000; }
+            else if (idx == 33) { calculatedSoldCount = 3900; }
+            // Best Sellers (highest rating score 4.90 - 4.95)
+            else if (idx == 1) { assignedRating = BigDecimal.valueOf(4.95); calculatedSoldCount = 2200; }
+            else if (idx == 90) { assignedRating = BigDecimal.valueOf(4.95); calculatedSoldCount = 2150; }
+            else if (idx == 106) { assignedRating = BigDecimal.valueOf(4.95); calculatedSoldCount = 2100; }
+            else if (idx == 15) { assignedRating = BigDecimal.valueOf(4.94); calculatedSoldCount = 2050; }
+            else if (idx == 30) { assignedRating = BigDecimal.valueOf(4.93); calculatedSoldCount = 1950; }
+            else if (idx == 46) { assignedRating = BigDecimal.valueOf(4.93); calculatedSoldCount = 1900; }
+            else if (idx == 67) { assignedRating = BigDecimal.valueOf(4.92); calculatedSoldCount = 1850; }
+            else if (idx == 80) { assignedRating = BigDecimal.valueOf(4.92); calculatedSoldCount = 1800; }
+            else if (idx == 6) { assignedRating = BigDecimal.valueOf(4.91); calculatedSoldCount = 2300; }
+            else if (idx == 20) { assignedRating = BigDecimal.valueOf(4.90); calculatedSoldCount = 1750; }
+            else if (idx == 34) { assignedRating = BigDecimal.valueOf(4.90); calculatedSoldCount = 1700; }
+            else if (idx == 68) { assignedRating = BigDecimal.valueOf(4.90); calculatedSoldCount = 1650; }
+            // New Arrivals (created within the last 2-24 hours)
+            else if (idx == 4) { assignedCreatedAt = LocalDateTime.now().minusHours(2); calculatedSoldCount = 450; }
+            else if (idx == 17) { assignedCreatedAt = LocalDateTime.now().minusHours(4); calculatedSoldCount = 380; }
+            else if (idx == 32) { assignedCreatedAt = LocalDateTime.now().minusHours(6); calculatedSoldCount = 520; }
+            else if (idx == 45) { assignedCreatedAt = LocalDateTime.now().minusHours(8); calculatedSoldCount = 310; }
+            else if (idx == 61) { assignedCreatedAt = LocalDateTime.now().minusHours(10); calculatedSoldCount = 490; }
+            else if (idx == 79) { assignedCreatedAt = LocalDateTime.now().minusHours(12); calculatedSoldCount = 280; }
+            else if (idx == 92) { assignedCreatedAt = LocalDateTime.now().minusHours(14); calculatedSoldCount = 360; }
+            else if (idx == 107) { assignedCreatedAt = LocalDateTime.now().minusHours(16); calculatedSoldCount = 550; }
+            else if (idx == 5) { assignedCreatedAt = LocalDateTime.now().minusHours(18); calculatedSoldCount = 410; }
+            else if (idx == 7) { assignedCreatedAt = LocalDateTime.now().minusHours(20); calculatedSoldCount = 220; }
+            else if (idx == 11) { assignedCreatedAt = LocalDateTime.now().minusHours(22); calculatedSoldCount = 580; }
+            else if (idx == 82) { assignedCreatedAt = LocalDateTime.now().minusHours(24); calculatedSoldCount = 390; }
+            else {
+                calculatedSoldCount = Math.max(80, (idx * 17) % 600 + 100);
+            }
+
+            product.setAverageRating(assignedRating);
             product.setSoldCount(calculatedSoldCount);
-            product.setCreatedAt(LocalDateTime.now().minusDays(daysAgo).minusHours(idx % 12));
-            product.setUpdatedAt(LocalDateTime.now().minusDays(daysAgo / 2));
+            product.setCreatedAt(assignedCreatedAt);
+            product.setUpdatedAt(assignedCreatedAt);
             product.setSlug(toSlug(item.name) + "-" + UUID.randomUUID().toString().substring(0, 8));
 
             product = productRepository.save(product);
@@ -258,12 +295,43 @@ public class DatabaseSeeder implements CommandLineRunner {
                 productImageRepository.saveAll(images);
             }
 
-            seededCount++;
+            savedProducts.add(product);
         }
 
-        log.info("Successfully seeded {} curated products (15 per category across 8 categories)!", seededCount);
+        log.info("Successfully seeded {} curated products (15 per category across 8 categories)!", savedProducts.size());
 
-        // 5. Re-index VectorStore with all 120 new products
+        // 5. Seed 8 Active Flash Sales (Deals of the Day)
+        List<Integer> flashDealIndices = List.of(8, 19, 35, 48, 62, 77, 93, 108);
+        List<BigDecimal> flashPrices = List.of(
+            BigDecimal.valueOf(6999.00),  // JBL Flip 6
+            BigDecimal.valueOf(4999.00),  // Ray-Ban Aviator
+            BigDecimal.valueOf(799.00),   // Milton Flask
+            BigDecimal.valueOf(399.00),   // Nutella
+            BigDecimal.valueOf(349.00),   // Maybelline Lipstick
+            BigDecimal.valueOf(1299.00),  // Speedo Goggles
+            BigDecimal.valueOf(799.00),   // Hasbro Monopoly
+            BigDecimal.valueOf(299.00)    // Sapiens Book
+        );
+
+        List<FlashSale> flashSales = new ArrayList<>();
+        for (int i = 0; i < flashDealIndices.size(); i++) {
+            int targetIdx = flashDealIndices.get(i);
+            if (targetIdx < savedProducts.size()) {
+                Product targetProduct = savedProducts.get(targetIdx);
+                FlashSale fs = new FlashSale();
+                fs.setProduct(targetProduct);
+                fs.setSalePrice(flashPrices.get(i));
+                fs.setStartsAt(LocalDateTime.now().minusDays(1));
+                fs.setEndsAt(LocalDateTime.now().plusDays(2));
+                fs.setStockLimit(50);
+                fs.setSoldCount(18);
+                flashSales.add(fs);
+            }
+        }
+        flashSaleRepository.saveAll(flashSales);
+        log.info("Successfully seeded {} active Flash Sales for Deals of the Day!", flashSales.size());
+
+        // 6. Re-index VectorStore with all 120 new products
         try {
             int vectorCount = productVectorSyncService.syncAllProducts();
             log.info("VectorStore catalog synced with {} curated products.", vectorCount);

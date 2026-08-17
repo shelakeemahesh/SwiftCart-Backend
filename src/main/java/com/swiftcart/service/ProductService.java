@@ -178,7 +178,7 @@ public class ProductService {
     public List<Product> getTrendingProducts() {
         List<Product> list = productRepository.findTop20ByIsActiveTrueOrderBySoldCountDesc();
         list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
-        return list;
+        return new ArrayList<>(list);
     }
 
     @Transactional(readOnly = true)
@@ -186,7 +186,7 @@ public class ProductService {
     public List<Product> getBestSellers() {
         List<Product> list = productRepository.findTop20ByIsActiveTrueOrderByAverageRatingDesc();
         list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
-        return list;
+        return new ArrayList<>(list);
     }
 
     @Transactional(readOnly = true)
@@ -194,7 +194,7 @@ public class ProductService {
     public List<Product> getNewArrivals() {
         List<Product> list = productRepository.findTop20ByIsActiveTrueOrderByCreatedAtDesc();
         list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
-        return list;
+        return new ArrayList<>(list);
     }
 
     @Transactional(readOnly = true)
@@ -206,7 +206,7 @@ public class ProductService {
                 .filter(Product::isActive)
                 .collect(java.util.stream.Collectors.toList());
         list.forEach(p -> { if (p.getImages() != null) p.getImages().size(); });
-        return list;
+        return new ArrayList<>(list);
     }
 
     @Cacheable(value = "productDetails", key = "#slug")
