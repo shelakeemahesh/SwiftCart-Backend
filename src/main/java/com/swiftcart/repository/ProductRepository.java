@@ -20,11 +20,11 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     @Override
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"seller", "category"})
+    @EntityGraph(attributePaths = {"seller", "category", "images"})
     Page<Product> findAll(Pageable pageable);
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.variants LEFT JOIN FETCH p.seller LEFT JOIN FETCH p.category WHERE p.slug = :slug AND p.isActive = true")

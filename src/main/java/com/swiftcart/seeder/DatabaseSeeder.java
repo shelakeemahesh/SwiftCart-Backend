@@ -1,184 +1,146 @@
 package com.swiftcart.seeder;
 
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.exceptions.CsvValidationException;
 import com.swiftcart.entity.Category;
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.ProductImage;
 import com.swiftcart.entity.User;
 import com.swiftcart.enums.Role;
-import com.swiftcart.repository.CategoryRepository;
-import com.swiftcart.repository.ProductImageRepository;
-import com.swiftcart.repository.ProductRepository;
-import com.swiftcart.repository.UserRepository;
-
+import com.swiftcart.repository.*;
+import com.swiftcart.service.ai.ProductVectorSyncService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
 import java.util.*;
 
 @Component
 @Profile({"dev", "prod"})
 public class DatabaseSeeder implements CommandLineRunner {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatabaseSeeder.class);
+
+    private static final Logger log = LoggerFactory.getLogger(DatabaseSeeder.class);
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
+    private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ProductVectorSyncService productVectorSyncService;
+    private final CartRepository cartRepository;
+    private final WishlistItemRepository wishlistItemRepository;
+    private final ReviewRepository reviewRepository;
+    private final ProductPriceHistoryRepository productPriceHistoryRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final OrderRepository orderRepository;
+    private final RazorpayPaymentRepository razorpayPaymentRepository;
+    private final PriceDropAlertRepository priceDropAlertRepository;
+    private final FlashSaleRepository flashSaleRepository;
 
-    private static final String[] ROOT_CATEGORIES = {"Electronics", "Fashion", "Home", "Grocery", "Beauty", "Sports", "Toys", "Books"};
-    
-    private static final Map<String, String> SUBCAT_TO_ROOT = new HashMap<>();
-    static {
-        
-        SUBCAT_TO_ROOT.put("Camera Accessories", "Electronics");
-        SUBCAT_TO_ROOT.put("Laptop Accessories", "Electronics");
-        SUBCAT_TO_ROOT.put("Mobile Accessories", "Electronics");
-        SUBCAT_TO_ROOT.put("Tablet Accessories", "Electronics");
-        SUBCAT_TO_ROOT.put("Computer Peripherals", "Electronics");
-        SUBCAT_TO_ROOT.put("Network Components", "Electronics");
-        SUBCAT_TO_ROOT.put("NEWGEN TECH EO-HS3303 218 Wired Headset (White)", "Electronics");
+    private static final String[] ROOT_CATEGORIES = {
+        "Electronics", "Fashion", "Home", "Grocery", "Beauty", "Sports", "Toys", "Books"
+    };
 
-        SUBCAT_TO_ROOT.put("Bags", "Fashion");
-        SUBCAT_TO_ROOT.put("Men's Clothing", "Fashion");
-        SUBCAT_TO_ROOT.put("Women's Clothing", "Fashion");
-        SUBCAT_TO_ROOT.put("Men's Footwear", "Fashion");
-        SUBCAT_TO_ROOT.put("Women's Footwear", "Fashion");
-        SUBCAT_TO_ROOT.put("Belts", "Fashion");
-        SUBCAT_TO_ROOT.put("Wrist Watches", "Fashion");
-        SUBCAT_TO_ROOT.put("Watch Accessories", "Fashion");
-        SUBCAT_TO_ROOT.put("Bangles, Bracelets & Armlets", "Fashion");
-        SUBCAT_TO_ROOT.put("Necklaces & Chains", "Fashion");
-        SUBCAT_TO_ROOT.put("Jewellery Sets", "Fashion");
-        SUBCAT_TO_ROOT.put("Pendants & Lockets", "Fashion");
-        SUBCAT_TO_ROOT.put("Rings", "Fashion");
-        SUBCAT_TO_ROOT.put("HH Oval Sunglasses", "Fashion");
-        SUBCAT_TO_ROOT.put("Olvin Aviator Sunglasses", "Fashion");
-        SUBCAT_TO_ROOT.put("Clovia Women's Full Coverage Bra", "Fashion");
-        SUBCAT_TO_ROOT.put("Leading lady Women's Camisole", "Fashion");
-        SUBCAT_TO_ROOT.put("RajeshFashion Women's Leggings", "Fashion");
-        SUBCAT_TO_ROOT.put("Siyas Collection Lac Cubic Zirconia Bangle Set (...", "Fashion");
-        SUBCAT_TO_ROOT.put("TSG Breeze Printed Women's Round Neck Multicolor...", "Fashion");
-        SUBCAT_TO_ROOT.put("Vishudh Printed Women's Straight Kurta", "Fashion");
-        SUBCAT_TO_ROOT.put("soie Fashion Women's Full Coverage Bra", "Fashion");
-        SUBCAT_TO_ROOT.put("Breakbounce Men's Vest", "Fashion");
-        SUBCAT_TO_ROOT.put("Klaur Melbourne Bellies", "Fashion");
-
-        SUBCAT_TO_ROOT.put("Action Figures", "Toys");
-        SUBCAT_TO_ROOT.put("Baby & Kids Gifts", "Toys");
-        SUBCAT_TO_ROOT.put("Diapering & Potty Training", "Toys");
-        SUBCAT_TO_ROOT.put("Infant Wear", "Toys");
-        SUBCAT_TO_ROOT.put("Kids' Clothing", "Toys");
-
-        SUBCAT_TO_ROOT.put("College Supplies", "Books");
-        SUBCAT_TO_ROOT.put("Pens", "Books");
-        SUBCAT_TO_ROOT.put("School Supplies", "Books");
-
-        SUBCAT_TO_ROOT.put("Body and Skin Care", "Beauty");
-        SUBCAT_TO_ROOT.put("Hair Care", "Beauty");
-        SUBCAT_TO_ROOT.put("Makeup", "Beauty");
-        SUBCAT_TO_ROOT.put("Fragrances", "Beauty");
-        SUBCAT_TO_ROOT.put("Personal Care Appliances", "Beauty");
-
-        SUBCAT_TO_ROOT.put("Outdoor & Adventure", "Sports");
-        SUBCAT_TO_ROOT.put("Car Accessories", "Sports");
-        SUBCAT_TO_ROOT.put("Car & Bike Accessories", "Sports");
-        SUBCAT_TO_ROOT.put("Gking Hand Stiched Steering Cover For Maruti Ert...", "Sports");
-
-        SUBCAT_TO_ROOT.put("Combos and Kits", "Grocery");
-        SUBCAT_TO_ROOT.put("Health Care", "Grocery");
-        SUBCAT_TO_ROOT.put("Housekeeping & Laundry", "Grocery");
-
-        SUBCAT_TO_ROOT.put("Accessories", "Home");
-        SUBCAT_TO_ROOT.put("Accessories & Spare parts", "Home");
-        SUBCAT_TO_ROOT.put("Bar & Glassware", "Home");
-        SUBCAT_TO_ROOT.put("Bath Linen", "Home");
-        SUBCAT_TO_ROOT.put("Bed Linen", "Home");
-        SUBCAT_TO_ROOT.put("Bedroom Furniture", "Home");
-        SUBCAT_TO_ROOT.put("Coffee Mugs", "Home");
-        SUBCAT_TO_ROOT.put("Cookware", "Home");
-        SUBCAT_TO_ROOT.put("Curtains & Accessories", "Home");
-        SUBCAT_TO_ROOT.put("Cushions, Pillows & Covers", "Home");
-        SUBCAT_TO_ROOT.put("Dinnerware & Crockery", "Home");
-        SUBCAT_TO_ROOT.put("Festive Decor", "Home");
-        SUBCAT_TO_ROOT.put("Floor Coverings", "Home");
-        SUBCAT_TO_ROOT.put("Kitchen & Dining Linen", "Home");
-        SUBCAT_TO_ROOT.put("Kitchen Appliances", "Home");
-        SUBCAT_TO_ROOT.put("Kitchen Tools", "Home");
-        SUBCAT_TO_ROOT.put("Lighting", "Home");
-        SUBCAT_TO_ROOT.put("Living Room Furnishing", "Home");
-        SUBCAT_TO_ROOT.put("Pet Furniture", "Home");
-        SUBCAT_TO_ROOT.put("Showpiece", "Home");
-        SUBCAT_TO_ROOT.put("Showpieces", "Home");
-        SUBCAT_TO_ROOT.put("Table Decor & Handicrafts", "Home");
-        SUBCAT_TO_ROOT.put("Tools", "Home");
-        SUBCAT_TO_ROOT.put("Wall Decor & Clocks", "Home");
-        SUBCAT_TO_ROOT.put("Candles & Fragrances", "Home");
-    }
-
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-
-    public DatabaseSeeder(CategoryRepository categoryRepository, ProductRepository productRepository, ProductImageRepository productImageRepository, UserRepository userRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+    public DatabaseSeeder(
+            CategoryRepository categoryRepository,
+            ProductRepository productRepository,
+            ProductImageRepository productImageRepository,
+            ProductVariantRepository productVariantRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            ProductVectorSyncService productVectorSyncService,
+            CartRepository cartRepository,
+            WishlistItemRepository wishlistItemRepository,
+            ReviewRepository reviewRepository,
+            ProductPriceHistoryRepository productPriceHistoryRepository,
+            OrderItemRepository orderItemRepository,
+            OrderRepository orderRepository,
+            RazorpayPaymentRepository razorpayPaymentRepository,
+            PriceDropAlertRepository priceDropAlertRepository,
+            FlashSaleRepository flashSaleRepository) {
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
+        this.productVariantRepository = productVariantRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.productVectorSyncService = productVectorSyncService;
+        this.cartRepository = cartRepository;
+        this.wishlistItemRepository = wishlistItemRepository;
+        this.reviewRepository = reviewRepository;
+        this.productPriceHistoryRepository = productPriceHistoryRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.orderRepository = orderRepository;
+        this.razorpayPaymentRepository = razorpayPaymentRepository;
+        this.priceDropAlertRepository = priceDropAlertRepository;
+        this.flashSaleRepository = flashSaleRepository;
     }
 
     @Override
-    @Transactional
     public void run(String... args) throws Exception {
-        if (productRepository.count() > 0) {
-            log.info("Database already seeded. Skipping...");
+        long currentCount = productRepository.count();
+        boolean needsReSeed = (currentCount != 120);
+
+        if (!needsReSeed) {
+            Optional<Product> sample = productRepository.findAll().stream().findFirst();
+            if (sample.isPresent() && !sample.get().getName().contains("Apple") && !sample.get().getName().contains("iPhone") && !sample.get().getName().contains("Sony")) {
+                needsReSeed = true;
+            }
+        }
+
+        if (!needsReSeed) {
+            log.info("Database already seeded with 120 curated products. Skipping seeder...");
             return;
         }
-        
-        log.info("Starting database seed from CSV...");
 
-        User defaultSeller = userRepository.findByEmail("seller_seed@swiftcart.com").orElseGet(() -> {
-            User seller = User.builder()
-                .name("Seed Seller")
-                .email("seller_seed@swiftcart.com")
-                .passwordHash(passwordEncoder.encode("seed123"))
-                .role(Role.SELLER)
-                .phone("9999999999")
-                .isVerified(true)
-                .build();
-            return userRepository.save(seller);
-        });
+        log.info("Starting curated catalog database seeding (15 products per category across 8 categories = 120 items)...");
 
-        User defaultAdmin = userRepository.findByEmail("admin@swiftcart.com").orElseGet(() -> {
-            User admin = User.builder()
-                .name("SwiftCart Admin")
-                .email("admin@swiftcart.com")
-                .passwordHash(passwordEncoder.encode("admin123"))
-                .role(Role.ADMIN)
-                .phone("8888888888")
-                .isVerified(true)
-                .build();
-            return userRepository.save(admin);
-        });
+        // 1. Seed Users
+        User defaultSeller = userRepository.findByEmail("seller_seed@swiftcart.com")
+                .or(() -> userRepository.findByPhone("9999999999"))
+                .orElseGet(() -> {
+                    User seller = User.builder()
+                            .name("Seed Seller")
+                            .email("seller_seed@swiftcart.com")
+                            .passwordHash(passwordEncoder.encode("seed123"))
+                            .role(Role.SELLER)
+                            .phone("9999999999")
+                            .isVerified(true)
+                            .build();
+                    return userRepository.save(seller);
+                });
 
-        User adminMahesh = userRepository.findByEmail("mahesh@swiftcart.com").orElseGet(() -> {
-            User admin = User.builder()
-                .name("Mahesh Admin")
-                .email("mahesh@swiftcart.com")
-                .passwordHash(passwordEncoder.encode("admin123"))
-                .role(Role.ADMIN)
-                .phone("9503072201")
-                .isVerified(true)
-                .build();
-            return userRepository.save(admin);
-        });
+        userRepository.findByEmail("admin@swiftcart.com")
+                .or(() -> userRepository.findByPhone("8888888888"))
+                .orElseGet(() -> {
+                    User admin = User.builder()
+                            .name("SwiftCart Admin")
+                            .email("admin@swiftcart.com")
+                            .passwordHash(passwordEncoder.encode("admin123"))
+                            .role(Role.ADMIN)
+                            .phone("8888888888")
+                            .isVerified(true)
+                            .build();
+                    return userRepository.save(admin);
+                });
 
+        userRepository.findByEmail("mahesh@swiftcart.com")
+                .or(() -> userRepository.findByPhone("9503072201"))
+                .orElseGet(() -> {
+                    User admin = User.builder()
+                            .name("Mahesh Admin")
+                            .email("mahesh@swiftcart.com")
+                            .passwordHash(passwordEncoder.encode("admin123"))
+                            .role(Role.ADMIN)
+                            .phone("9503072201")
+                            .isVerified(true)
+                            .build();
+                    return userRepository.save(admin);
+                });
+
+        // 2. Ensure the 8 Root Categories exist
         Map<String, Category> rootCategories = new HashMap<>();
         for (int i = 0; i < ROOT_CATEGORIES.length; i++) {
             String rootName = ROOT_CATEGORIES[i];
@@ -191,88 +153,92 @@ public class DatabaseSeeder implements CommandLineRunner {
                 cat.setDisplayOrder(displayOrder);
                 return categoryRepository.save(cat);
             });
+            // Ensure slug is clean
+            if (root.getSlug() == null || !root.getSlug().equalsIgnoreCase(toSlug(rootName))) {
+                root.setSlug(toSlug(rootName));
+                root.setDisplayOrder(displayOrder);
+                root.setActive(true);
+                root = categoryRepository.save(root);
+            }
             rootCategories.put(rootName, root);
         }
 
-        ClassPathResource resource = new ClassPathResource("data/flipkart_products_formatted.csv");
-        if (!resource.exists()) {
-            log.warn("Seed file flipkart_products_formatted.csv not found in classpath. Seeding aborted.");
-            return;
+        // 3. Clear old products if replacing legacy seed data in foreign key order
+        if (currentCount > 0) {
+            log.info("Cleaning up {} old products to replace with 120 curated items...", currentCount);
+            try {
+                flashSaleRepository.deleteAllInBatch();
+                priceDropAlertRepository.deleteAllInBatch();
+                orderItemRepository.deleteAllInBatch();
+                razorpayPaymentRepository.deleteAllInBatch();
+                orderRepository.deleteAllInBatch();
+                cartRepository.deleteAllInBatch();
+                wishlistItemRepository.deleteAllInBatch();
+                productPriceHistoryRepository.deleteAllInBatch();
+                reviewRepository.deleteAllInBatch();
+                productVariantRepository.deleteAllInBatch();
+                productImageRepository.deleteAllInBatch();
+                productRepository.deleteAllInBatch();
+            } catch (Exception ex) {
+                log.warn("Notice during cleanup: {}", ex.getMessage());
+            }
         }
 
-        Map<String, Category> subCategories = new HashMap<>();
+        // 4. Seed all 120 Curated Products
+        List<CuratedSeedData.SeedItem> seedItems = CuratedSeedData.getCuratedProducts();
+        int seededCount = 0;
 
-        try (CSVReader reader = new CSVReaderBuilder(new InputStreamReader(resource.getInputStream())).withSkipLines(1).build()) {
-            String[] line;
-            int prodCount = 0;
-            while ((line = reader.readNext()) != null) {
-                if (line.length < 8) continue;
-                
-                String name = line[0];
-                String brand = line[1];
-                String subcatName = line[2];
-                String basePriceStr = line[3];
-                String mrpStr = line[4];
-                String stockQtyStr = line[5];
-                String desc = line[6];
-                String imageUrlList = line[7];
-
-                String rootName = SUBCAT_TO_ROOT.getOrDefault(subcatName, "Home");
-                Category parent = rootCategories.get(rootName);
-
-                Category subCat = subCategories.computeIfAbsent(subcatName, k -> {
-                    return categoryRepository.findByNameAndParent(subcatName, parent).orElseGet(() -> {
-                        Category cat = new Category();
-                        cat.setName(subcatName);
-                        cat.setSlug(toSlug(subcatName) + "-" + UUID.randomUUID().toString().substring(0, 5));
-                        cat.setParent(parent);
-                        cat.setActive(true);
-                        return categoryRepository.save(cat);
-                    });
-                });
-
-                Product product = new Product();
-                product.setName(name);
-                product.setBrand(brand);
-                product.setDescription(desc);
-                product.setBasePrice(new BigDecimal(basePriceStr));
-                product.setMrp(new BigDecimal(mrpStr));
-                product.setStockQty(Integer.parseInt(stockQtyStr));
-                product.setCategory(subCat);
-                product.setSeller(defaultSeller);
-                product.setSlug(toSlug(name) + "-" + UUID.randomUUID().toString().substring(0, 8));
-                product.setActive(true);
-                product.setAverageRating(new BigDecimal("4.2"));
-                
-                product = productRepository.save(product);
-
-                if (imageUrlList != null && !imageUrlList.isEmpty()) {
-                    String[] urls = imageUrlList.split("\\|");
-                    List<ProductImage> images = new ArrayList<>();
-                    for (int i = 0; i < urls.length; i++) {
-                        String url = urls[i].trim();
-                        if (url.isEmpty()) continue;
-                        if (url.contains("flixcart.com")) {
-                            url = url.replaceAll("http://img[0-9a-zA-Z]+\\.flixcart\\.com", "https://rukminim1.flixcart.com");
-                        }
-                        ProductImage image = new ProductImage();
-                        image.setImageUrl(url);
-                        image.setPrimary(i == 0);
-                        image.setDisplayOrder(i);
-                        image.setProduct(product);
-                        images.add(image);
-                    }
-                    productImageRepository.saveAll(images);
-                }
-                
-                prodCount++;
-                if (prodCount % 100 == 0) {
-                    log.info("Seeded {} products...", prodCount);
-                }
+        for (CuratedSeedData.SeedItem item : seedItems) {
+            Category category = rootCategories.get(item.category);
+            if (category == null) {
+                category = rootCategories.get("Home");
             }
-            log.info("Database seeding completed successfully! {} products inserted.", prodCount);
-        } catch (CsvValidationException e) {
-            log.error("Error parsing seed CSV", e);
+
+            Product product = new Product();
+            product.setName(item.name);
+            product.setBrand(item.brand);
+            product.setCategory(category);
+            product.setBasePrice(item.price);
+            product.setMrp(item.mrp);
+            product.setStockQty(item.stockQty);
+            product.setAverageRating(item.rating);
+            product.setReviewCount(item.reviewCount);
+            product.setHighlights(item.highlights);
+            product.setSpecifications(item.specifications);
+            product.setDescription(item.description);
+            product.setSeller(defaultSeller);
+            product.setActive(true);
+            product.setFeatured(true);
+            product.setSlug(toSlug(item.name) + "-" + UUID.randomUUID().toString().substring(0, 8));
+
+            product = productRepository.save(product);
+
+            if (item.images != null && !item.images.isEmpty()) {
+                List<ProductImage> images = new ArrayList<>();
+                for (int i = 0; i < item.images.size(); i++) {
+                    String url = item.images.get(i).trim();
+                    if (url.isEmpty()) continue;
+                    ProductImage img = new ProductImage();
+                    img.setImageUrl(url);
+                    img.setPrimary(i == 0);
+                    img.setDisplayOrder(i);
+                    img.setProduct(product);
+                    images.add(img);
+                }
+                productImageRepository.saveAll(images);
+            }
+
+            seededCount++;
+        }
+
+        log.info("Successfully seeded {} curated products (15 per category across 8 categories)!", seededCount);
+
+        // 5. Re-index VectorStore with all 120 new products
+        try {
+            int vectorCount = productVectorSyncService.syncAllProducts();
+            log.info("VectorStore catalog synced with {} curated products.", vectorCount);
+        } catch (Exception ex) {
+            log.warn("Vector sync after seeding: {}", ex.getMessage());
         }
     }
 
