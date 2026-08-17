@@ -39,9 +39,9 @@ spring:
       port: "${REDIS_PORT:6379}"
       password: "${REDIS_PASSWORD:}"
   datasource:
-    url: "${SPRING_DATASOURCE_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}"
-    username: "${SPRING_DATASOURCE_USERNAME:2Honwd66Qkukh9g.root}"
-    password: "${SPRING_DATASOURCE_PASSWORD:MGMGi45fT2PLGknJ}"
+    url: "${SPRING_DATASOURCE_URL:${DATABASE_URL:${MYSQL_URL:jdbc:mysql://gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/swiftcart?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3}}}"
+    username: "${SPRING_DATASOURCE_USERNAME:${DATABASE_USER:${MYSQL_USER:2Honwd66Qkukh9g.root}}}"
+    password: "${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:${MYSQL_PASSWORD:MGMGi45fT2PLGknJ}}}"
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 2
