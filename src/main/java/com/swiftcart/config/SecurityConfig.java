@@ -131,8 +131,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            frontendDomain, "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            frontendDomain,
+            "http://localhost:*",
+            "https://*.onrender.com",
+            "https://*.vercel.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
