@@ -213,11 +213,9 @@ public class AiChatbotService {
                 );
 
             default:
-                return AiChatResponseDTO.text(
-                        "I didn't quite catch that. Here is what I can help you with:",
-                        DEFAULT_OPTIONS,
-                        null
-                );
+                // If it's a natural query passed as intent, fallback to RAG
+                String queryText = (user != null ? "" : "") + intent;
+                return productRagService.answerProductQuestion(queryText, null);
         }
     }
 
