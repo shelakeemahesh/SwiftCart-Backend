@@ -127,8 +127,8 @@ public class ProductRagService {
 
         if (recommendations.isEmpty()) {
             String fallback = "I searched our product catalog, but couldn't find exact matches for \"" + userQuery +
-                    "\". Would you like me to connect you with our human support team or help you browse popular categories?";
-            return AiChatResponseDTO.text(fallback, List.of("🚚 Track my order", "↩️ Return / Refund", "🗣️ Talk to human"), "/products");
+                    "\". Would you like me to connect you with our customer support team or help you explore all catalog products?";
+            return AiChatResponseDTO.text(fallback, List.of("🚚 Track my order", "↩️ Return / Refund", "🗣️ Talk to human"), "/search");
         }
 
         String reply = synthesizeCatalogAnswer(userQuery, recommendations, relevantDocs);
@@ -140,9 +140,9 @@ public class ProductRagService {
     private String synthesizeSpecificProductAnswer(Product p, String query) {
         StringBuilder sb = new StringBuilder();
         sb.append("Here are the details for **").append(p.getName()).append("**:\n\n");
-        sb.append("• **Price**: $").append(p.getBasePrice());
+        sb.append("• **Price**: ₹").append(p.getBasePrice());
         if (p.getMrp() != null && p.getMrp().compareTo(p.getBasePrice()) > 0) {
-            sb.append(" (Save with original MRP: $").append(p.getMrp()).append(")");
+            sb.append(" (Save with original MRP: ₹").append(p.getMrp()).append(")");
         }
         sb.append("\n• **Stock**: ").append(p.getStockQty() > 0 ? (p.getStockQty() + " items available in stock") : "Currently out of stock");
         sb.append("\n• **Customer Rating**: ").append(p.getAverageRating()).append(" / 5 stars (").append(p.getReviewCount()).append(" reviews)");
@@ -170,7 +170,7 @@ public class ProductRagService {
             if (p.getBrand() != null && !p.getBrand().isBlank()) {
                 sb.append(" by ").append(p.getBrand());
             }
-            sb.append(" — **$").append(p.getPrice()).append("**");
+            sb.append(" — **₹").append(p.getPrice()).append("**");
             if (p.getAverageRating() != null && p.getAverageRating().doubleValue() > 0) {
                 sb.append(" (⭐ ").append(p.getAverageRating()).append("/5)");
             }
@@ -181,7 +181,7 @@ public class ProductRagService {
             sb.append("\n\n");
         }
 
-        sb.append("You can click on any card below to view detailed specifications, customer reviews, or add the item to your cart!");
+        sb.append("You can click on any product card below to view detailed specifications or purchase!");
         return sb.toString();
     }
 }

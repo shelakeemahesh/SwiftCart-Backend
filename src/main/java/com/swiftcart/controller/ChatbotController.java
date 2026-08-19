@@ -108,12 +108,12 @@ public class ChatbotController {
         User user = getUserFromPrincipal(principal);
         String uuid = request.getOrderId();
 
-        if (uuid != null && uuid.length() == 8) {
+        if (uuid != null && uuid.length() <= 8) {
             final String target = uuid;
             List<Order> matching = orderRepository.findByUserId(user.getId(), PageRequest.of(0, 100))
                     .getContent()
                     .stream()
-                    .filter(o -> o.getOrderUuid().substring(0, 8).equalsIgnoreCase(target))
+                    .filter(o -> o.getOrderUuid() != null && o.getOrderUuid().toLowerCase().startsWith(target.toLowerCase()))
                     .collect(Collectors.toList());
             if (!matching.isEmpty()) {
                 uuid = matching.get(0).getOrderUuid();

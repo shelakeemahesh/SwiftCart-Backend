@@ -162,7 +162,11 @@ public class AiChatbotService {
 
                 List<String> cancelOptions = lastOrders.stream()
                         .filter(o -> o.getStatus() == OrderStatus.PENDING || o.getStatus() == OrderStatus.CONFIRMED)
-                        .map(o -> "Cancel " + o.getOrderUuid().substring(0, 8))
+                        .map(o -> {
+                            String uuid = o.getOrderUuid();
+                            String shortUuid = (uuid != null && uuid.length() >= 8) ? uuid.substring(0, 8) : (uuid != null ? uuid : String.valueOf(o.getId()));
+                            return "Cancel " + shortUuid;
+                        })
                         .collect(Collectors.toList());
 
                 if (cancelOptions.isEmpty()) {
@@ -185,7 +189,7 @@ public class AiChatbotService {
             case "RETURN":
             case "REFUND":
                 return AiChatResponseDTO.text(
-                        "You can return items within 7 days of delivery. Items must be unused with original tags and packaging intact. Click below to initiate a return.",
+                        "You can return items within 7 days of delivery. Items must be unused with original tags and packaging intact. Click below to view our full returns policy.",
                         List.of("🚚 Track my order", "🗣️ Talk to human"),
                         "/info/returns-refunds"
                 );
@@ -207,7 +211,7 @@ public class AiChatbotService {
 
             case "TALK_TO_HUMAN":
                 return AiChatResponseDTO.text(
-                        "Our human customer support team is available Monday through Saturday, 9 AM – 6 PM. Email: support@swiftcart.com. Typical response time is under 2 hours.",
+                        "Our customer support team is available Monday through Saturday, 9 AM – 6 PM. Email: support@swiftcart.com. Typical response time is under 2 hours.",
                         List.of("🚚 Track my order", "↩️ Return / Refund"),
                         null
                 );
@@ -220,27 +224,34 @@ public class AiChatbotService {
     }
 
     private boolean isOrderTrackingQuery(String text) {
-        return text.contains("track") || text.contains("where is my order") || text.contains("order status") || text.contains("package status");
+        if (text == null) return false;
+        return text.matches("(?i).*\\b(track\\s+(my\\s+)?order|where\\s+is\\s+my\\s+(order|package|delivery)|order\\s+status|tracking\\s+status|package\\s+status)\\b.*");
     }
 
     private boolean isOrderCancellationQuery(String text) {
-        return text.contains("cancel order") || text.contains("cancel my order") || text.equals("cancel");
+        if (text == null) return false;
+        return text.matches("(?i)^(\\s*cancel(\\s+(my\\s+)?order)?\\s*)$")
+                || text.matches("(?i).*\\b(cancel\\s+(my\\s+)?order|how\\s+to\\s+cancel\\s+(my\\s+)?order)\\b.*");
     }
 
     private boolean isReturnRefundQuery(String text) {
-        return text.contains("return") || text.contains("refund") || text.contains("replacement") || text.contains("return policy");
+        if (text == null) return false;
+        return text.matches("(?i).*\\b(return\\s+policy|refund\\s+policy|how\\s+to\\s+return|initiate\\s+a?\\s*return|request\\s+a?\\s*refund)\\b.*");
     }
 
     private boolean isPaymentQuery(String text) {
-        return text.contains("payment") || text.contains("double debit") || text.contains("money deducted") || text.contains("transaction fail");
+        if (text == null) return false;
+        return text.matches("(?i).*\\b(payment\\s+fail(ed|ure)?|double\\s+debit|money\\s+deducted|transaction\\s+fail(ed|ure)?|payment\\s+issue)\\b.*");
     }
 
     private boolean isAccountQuery(String text) {
-        return text.contains("account help") || text.contains("reset password") || text.contains("my profile") || text.contains("change address");
+        if (text == null) return false;
+        return text.matches("(?i).*\\b(account\\s+help|reset\\s+password|my\\s+profile\\s+settings|change\\s+my\\s+address)\\b.*");
     }
 
     private boolean isHumanSupportQuery(String text) {
-        return text.contains("human") || text.contains("agent") || text.contains("customer care") || text.contains("talk to someone");
+        if (text == null) return false;
+        return text.matches("(?i).*\\b(talk\\s+to\\s+(a\\s+)?human|contact\\s+(customer\\s+)?support|speak\\s+with\\s+(an?\\s+)?agent|customer\\s+care\\s+number)\\b.*");
     }
 
     private String mapStatus(OrderStatus status) {

@@ -130,7 +130,7 @@ app:
   frontend:
     domain: "${FRONTEND_URL:http://localhost:5173}"
   oauth2:
-    authorizedRedirectUris: "${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback}"
+    authorizedRedirectUris: "${OAUTH2_REDIRECT_URIS:http://localhost:5173/oauth2/callback,http://localhost:3000/oauth2/callback,http://localhost:4173/oauth2/callback,https://swiftcart.vercel.app/oauth2/callback,https://swiftcart-frontend.vercel.app/oauth2/callback}"
   ai:
     rag:
       enabled: "${AI_RAG_ENABLED:true}"

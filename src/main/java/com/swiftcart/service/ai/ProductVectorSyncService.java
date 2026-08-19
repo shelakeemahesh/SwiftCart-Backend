@@ -116,8 +116,8 @@ public class ProductVectorSyncService {
         content.append("Product Name: ").append(product.getName()).append("\n");
         if (product.getBrand() != null) content.append("Brand: ").append(product.getBrand()).append("\n");
         if (!categoryName.isBlank()) content.append("Category: ").append(categoryName).append("\n");
-        if (product.getBasePrice() != null) content.append("Price: $").append(product.getBasePrice()).append("\n");
-        if (product.getMrp() != null) content.append("Original MRP: $").append(product.getMrp()).append("\n");
+        if (product.getBasePrice() != null) content.append("Price: ₹").append(product.getBasePrice()).append("\n");
+        if (product.getMrp() != null) content.append("Original MRP: ₹").append(product.getMrp()).append("\n");
         content.append("Stock Status: ").append(product.getStockQty() > 0 ? (product.getStockQty() + " items available in stock") : "Out of stock").append("\n");
         if (product.getAverageRating() != null) content.append("Customer Rating: ").append(product.getAverageRating()).append(" / 5 stars (").append(product.getReviewCount()).append(" reviews)\n");
 

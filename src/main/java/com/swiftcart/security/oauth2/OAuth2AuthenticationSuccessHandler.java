@@ -24,8 +24,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final AuthService authService;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
-    @Value("${app.oauth2.authorizedRedirectUris}")
+    @Value("${app.oauth2.authorizedRedirectUris:http://localhost:5173/oauth2/callback,http://localhost:3000/oauth2/callback,http://localhost:4173/oauth2/callback,https://swiftcart.vercel.app/oauth2/callback}")
     private List<String> authorizedRedirectUris;
+
+    @Value("${app.frontend.domain:http://localhost:5173}")
+    private String frontendDomain;
 
     public OAuth2AuthenticationSuccessHandler(AuthService authService, HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository) {
         this.authService = authService;
@@ -39,7 +42,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             targetUrl = determineTargetUrl(request, response, authentication);
         } catch (IllegalArgumentException ex) {
             String fallbackUrl = (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
-                    ? authorizedRedirectUris.get(0)
+                    ? authorizedRedirectUris.get(0).split(",")[0].trim().replace("\"", "").replace("'", "")
                     : "http://localhost:5173/oauth2/callback";
             targetUrl = UriComponentsBuilder.fromUriString(fallbackUrl)
                     .queryParam("error", ex.getMessage())
@@ -65,7 +68,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         String targetUrl = redirectUri.orElse(
                 (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
-                ? authorizedRedirectUris.get(0)
+                ? authorizedRedirectUris.get(0).split(",")[0].trim().replace("\"", "").replace("'", "")
                 : "http://localhost:5173/oauth2/callback"
         );
 
@@ -84,14 +87,49 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private boolean isAuthorizedRedirectUri(String uri) {
+        if (uri == null || uri.isBlank()) {
+            return false;
+        }
         try {
-            URI clientRedirectUri = URI.create(uri);
-            return authorizedRedirectUris.stream()
-                    .anyMatch(authorizedRedirectUri -> {
-                        URI authorizedURI = URI.create(authorizedRedirectUri);
-                        return authorizedURI.getHost().equalsIgnoreCase(clientRedirectUri.getHost())
-                                && authorizedURI.getPort() == clientRedirectUri.getPort();
-                    });
+            URI clientRedirectUri = URI.create(uri.trim());
+            String clientHost = clientRedirectUri.getHost();
+            if (clientHost == null) return false;
+
+            // Allow localhost/127.0.0.1 in local development
+            if (clientHost.equalsIgnoreCase("localhost") || clientHost.equals("127.0.0.1")) {
+                return true;
+            }
+
+            // Check against configured frontendDomain
+            if (frontendDomain != null && !frontendDomain.isBlank()) {
+                URI frontendURI = URI.create(frontendDomain.trim());
+                if (frontendURI.getHost() != null && frontendURI.getHost().equalsIgnoreCase(clientHost)) {
+                    return true;
+                }
+            }
+
+            // Check against configured authorizedRedirectUris
+            if (authorizedRedirectUris != null) {
+                for (String rawUri : authorizedRedirectUris) {
+                    if (rawUri == null) continue;
+                    String[] splitUris = rawUri.split(",");
+                    for (String singleUri : splitUris) {
+                        String cleanUri = singleUri.trim().replace("\"", "").replace("'", "");
+                        if (cleanUri.isBlank()) continue;
+                        try {
+                            URI authorizedURI = URI.create(cleanUri);
+                            if (authorizedURI.getHost() != null && authorizedURI.getHost().equalsIgnoreCase(clientHost)) {
+                                int authPort = authorizedURI.getPort() != -1 ? authorizedURI.getPort() : (authorizedURI.getScheme() != null && authorizedURI.getScheme().equalsIgnoreCase("https") ? 443 : 80);
+                                int clientPort = clientRedirectUri.getPort() != -1 ? clientRedirectUri.getPort() : (clientRedirectUri.getScheme() != null && clientRedirectUri.getScheme().equalsIgnoreCase("https") ? 443 : 80);
+                                if (authPort == clientPort) {
+                                    return true;
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }
