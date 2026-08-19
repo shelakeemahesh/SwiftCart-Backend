@@ -31,29 +31,48 @@ public class LiveActivityConsumer {
     public void addEmitter(SseEmitter emitter) {
         emitters.add(emitter);
         emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError((e) -> emitters.remove(emitter));
+        emitter.onTimeout(() -> {
+            emitters.remove(emitter);
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
+        emitter.onError((e) -> {
+            emitters.remove(emitter);
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
+        });
 
         // Send initial connection event to prevent buffering/timeouts
         try {
             emitter.send(SseEmitter.event()
                     .name("connected")
                     .data("established"));
-        } catch (IOException e) {
+        } catch (Exception e) {
             emitters.remove(emitter);
+            try {
+                emitter.complete();
+            } catch (Exception ignored) {}
         }
     }
 
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 25000)
     public void sendHeartbeat() {
+        if (emitters.isEmpty()) {
+            return;
+        }
         List<SseEmitter> deadEmitters = new java.util.concurrent.CopyOnWriteArrayList<>();
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event()
                         .name("heartbeat")
                         .data("ping"));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 deadEmitters.add(emitter);
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {}
             }
         }
         if (!deadEmitters.isEmpty()) {
@@ -93,16 +112,24 @@ public class LiveActivityConsumer {
 
     // Direct receiver for local in-memory fallback + Kafka listener
     public void onEventReceived(String jsonEvent) {
+        if (emitters.isEmpty()) {
+            return;
+        }
         List<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event()
                         .name("activity-feed")
                         .data(jsonEvent));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 deadEmitters.add(emitter);
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {}
             }
         }
-        emitters.removeAll(deadEmitters);
+        if (!deadEmitters.isEmpty()) {
+            emitters.removeAll(deadEmitters);
+        }
     }
 }
