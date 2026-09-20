@@ -40,6 +40,9 @@ public class S3Service {
     @Value("${app.upload.dir:uploads}")
     private String localUploadDir;
 
+    @Value("${app.backend.url:}")
+    private String backendBaseUrl;
+
     private S3Client s3Client;
     private boolean useLocalFallback = true;
 
@@ -84,7 +87,7 @@ public class S3Service {
                 fos.write(content);
                 log.info("Saved image locally to: {}", target.getAbsolutePath());
                 
-                return "http://localhost:8080/uploads/" + uniqueFilename;
+                return getBaseUrl() + "/uploads/" + uniqueFilename;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to save image locally", e);
             }
@@ -105,5 +108,16 @@ public class S3Service {
                 throw new RuntimeException("Failed to upload image to S3", e);
             }
         }
+    }
+
+    private String getBaseUrl() {
+        if (backendBaseUrl != null && !backendBaseUrl.isBlank()) {
+            return backendBaseUrl.replaceAll("/+$", "");
+        }
+        String renderUrl = System.getenv("RENDER_EXTERNAL_URL");
+        if (renderUrl != null && !renderUrl.isBlank()) {
+            return renderUrl.replaceAll("/+$", "");
+        }
+        return "http://localhost:8080";
     }
 }

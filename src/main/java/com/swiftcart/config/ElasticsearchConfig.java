@@ -8,7 +8,13 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfigurat
 
 @Configuration
 @ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true", matchIfMissing = false)
-@org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories(basePackages = "com.swiftcart.repository")
+@org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories(
+        basePackages = "com.swiftcart.repository",
+        includeFilters = @org.springframework.context.annotation.ComponentScan.Filter(
+                type = org.springframework.context.annotation.FilterType.ASSIGNABLE_TYPE,
+                classes = com.swiftcart.repository.ProductSearchRepository.class
+        )
+)
 public class ElasticsearchConfig extends ElasticsearchConfiguration {
 
     @Value("${elasticsearch.host:localhost}")

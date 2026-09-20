@@ -7,6 +7,7 @@ import com.swiftcart.entity.Product;
 import com.swiftcart.entity.Review;
 import com.swiftcart.entity.User;
 import com.swiftcart.enums.ReviewSentiment;
+import com.swiftcart.exception.ResourceNotFoundException;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.ReviewRepository;
 import com.swiftcart.repository.UserRepository;
@@ -51,7 +52,7 @@ public class SentimentAnalyticsService {
      */
     public ProductSentimentSummaryDTO getProductSentimentSummary(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         List<Review> reviews = reviewRepository.findByProductId(productId);
         if (reviews.isEmpty()) {
@@ -114,7 +115,7 @@ public class SentimentAnalyticsService {
      */
     public VendorRiskDTO getSellerSentimentInsights(Long sellerId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new RuntimeException("Seller not found with id: " + sellerId));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
 
         List<Review> sellerReviews = reviewRepository.findByProductSellerId(sellerId);
         long totalReviews = sellerReviews.size();

@@ -7,6 +7,7 @@ import com.swiftcart.enums.Role;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.OrderRepository;
+import com.swiftcart.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -18,10 +19,15 @@ public class SwiftCartSecurityExpression {
 
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
 
-    public SwiftCartSecurityExpression(ProductRepository productRepository, OrderRepository orderRepository) {
+    public SwiftCartSecurityExpression(
+            ProductRepository productRepository,
+            OrderRepository orderRepository,
+            UserRepository userRepository) {
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
     }
 
     public boolean isAdminOrSellerOwner(Long sellerId) {
@@ -95,6 +101,12 @@ public class SwiftCartSecurityExpression {
         Object principal = auth.getPrincipal();
         if (principal instanceof CustomUserPrincipal) {
             return ((CustomUserPrincipal) principal).getUser();
+        }
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            String username = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            return userRepository.findByEmail(username)
+                    .or(() -> userRepository.findByPhone(username))
+                    .orElse(null);
         }
         return null;
     }

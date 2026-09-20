@@ -71,11 +71,12 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh-token", "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/register/seller").permitAll()
-                .requestMatchers("/oauth2/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh-token", "/api/v1/auth/send-otp", "/api/v1/auth/verify-otp", "/api/v1/auth/register/seller", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/logout").permitAll()
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reviews/products/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/search/reindex").hasRole("ADMIN")
                 .requestMatchers("/api/v1/search/**").permitAll()
                 .requestMatchers("/api/v1/activity/stream").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -102,7 +103,7 @@ public class SecurityConfig {
             )
             .oauth2Login(oauth2 -> oauth2
                 .authorizationEndpoint(authorization -> authorization
-                    .baseUri("/oauth2/authorize")
+                    .baseUri("/oauth2/authorization")
                     .authorizationRequestRepository(cookieAuthorizationRequestRepository)
                 )
                 .redirectionEndpoint(redirection -> redirection

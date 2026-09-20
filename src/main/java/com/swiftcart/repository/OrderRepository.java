@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,8 +28,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByUserId(Long userId, Pageable pageable);
     @EntityGraph(attributePaths = {"items", "items.product", "items.variant"})
     Page<Order> findByUserIdAndStatus(Long userId, OrderStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "items.product"})
     Optional<Order> findFirstByUserIdAndStatusNotInOrderByIdDesc(Long userId, List<OrderStatus> statuses);
 
     @Query("SELECT o FROM Order o JOIN o.items item WHERE item.product.seller.id = :sellerId")
     List<Order> findBySellerId(@Param("sellerId") Long sellerId);
+
+    @Query("SELECT COALESCE(SUM(o.finalAmount), 0) FROM Order o WHERE o.status <> :excludedStatus")
+    BigDecimal calculateTotalSalesRevenue(@Param("excludedStatus") OrderStatus excludedStatus);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN (:statuses)")
+    long countByStatusIn(@Param("statuses") List<OrderStatus> statuses);
 }

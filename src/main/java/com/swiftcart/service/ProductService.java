@@ -12,6 +12,8 @@ import com.swiftcart.kafka.producer.OrderEventProducer;
 import com.swiftcart.util.SlugUtil;
 import com.swiftcart.entity.FlashSale;
 import com.swiftcart.repository.FlashSaleRepository;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.springframework.cache.annotation.Caching;
 import java.time.LocalDateTime;
 import net.coobird.thumbnailator.Thumbnails;
@@ -157,7 +159,7 @@ public class ProductService {
     @Cacheable(value = "productLists", key = "T(java.util.Objects).hash(#slug, #page, #size)")
     public Page<Product> getProductsByCategorySlug(String slug, int page, int size) {
         Category category = categoryRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Category not found with slug: " + slug));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with slug: " + slug));
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         
         Page<Product> products = productRepository.findAll((root, query, cb) -> 
@@ -218,7 +220,7 @@ public class ProductService {
                 productOpt = productRepository.findByIdWithDetails(Long.parseLong(slug));
             } catch (Exception ignored) {}
         }
-        return productOpt.orElseThrow(() -> new RuntimeException("Product not found with identifier: " + slug));
+        return productOpt.orElseThrow(() -> new ResourceNotFoundException("Product not found with identifier: " + slug));
     }
 
     @Transactional
@@ -254,7 +256,7 @@ public class ProductService {
     })
     public Product updateProduct(String slug, Product updatedProduct) {
         Product existing = productRepository.findBySlugWithDetails(slug)
-                .orElseThrow(() -> new RuntimeException("Product not found with slug: " + slug));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with slug: " + slug));
 
         existing.setName(updatedProduct.getName());
         existing.setBrand(updatedProduct.getBrand());
@@ -287,7 +289,7 @@ public class ProductService {
     })
     public void deleteProduct(Long id) {
         Product p = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         p.setActive(false);
         Product saved = productRepository.save(p);
         publishIndexingEvent(saved);
@@ -303,7 +305,7 @@ public class ProductService {
     })
     public void updateStock(Long id, int qty) {
         Product p = productRepository.findAndLockById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         p.setStockQty(qty);
         Product saved = productRepository.save(p);
         publishIndexingEvent(saved);
@@ -317,6 +319,10 @@ public class ProductService {
         while (productRepository.existsBySlug(currentSlug)) {
             currentSlug = baseSlug + "-" + counter;
             counter++;
+            if (counter > 10) {
+                currentSlug = baseSlug + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                break;
+            }
         }
         return currentSlug;
     }
@@ -331,7 +337,7 @@ public class ProductService {
     })
     public void recalculateAverageRating(Long productId, BigDecimal newAverage, int newCount) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
         product.setAverageRating(newAverage);
         product.setReviewCount(newCount);
         Product saved = productRepository.save(product);
@@ -381,7 +387,7 @@ public class ProductService {
     })
     public List<String> uploadProductImages(Long productId, byte[] fileBytes, String originalFilename, String contentType) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         try {
             ByteArrayOutputStream mainOs = new ByteArrayOutputStream();
@@ -427,7 +433,7 @@ public class ProductService {
             return List.of(mainUrl, thumbUrl);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to process and upload product images", e);
+            throw new BadRequestException("Failed to process and upload product images: " + e.getMessage());
         }
     }
 

@@ -4,6 +4,8 @@ import com.swiftcart.dto.response.ApiResponse;
 import com.swiftcart.entity.PriceDropAlert;
 import com.swiftcart.entity.ProductPriceHistory;
 import com.swiftcart.entity.User;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.UnauthorizedException;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.PriceHistoryService;
 import org.springframework.http.ResponseEntity;
@@ -41,12 +43,26 @@ public class PriceHistoryController {
             @RequestBody Map<String, Object> body) {
         
         if (principal == null) {
-            return ResponseEntity.status(401).build();
+            throw new UnauthorizedException("Authentication required to create price alerts");
+        }
+
+        if (body == null || body.get("targetPrice") == null) {
+            throw new BadRequestException("targetPrice is required");
         }
 
         User user = com.swiftcart.security.SecurityUtil.getUserFromPrincipal(principal, userRepository);
 
-        BigDecimal targetPrice = new BigDecimal(body.get("targetPrice").toString());
+        BigDecimal targetPrice;
+        try {
+            targetPrice = new BigDecimal(body.get("targetPrice").toString());
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("targetPrice must be a valid number");
+        }
+
+        if (targetPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("targetPrice must be greater than zero");
+        }
+
         String email = body.getOrDefault("email", user.getEmail()).toString();
 
         PriceDropAlert alert = priceHistoryService.createAlert(user.getId(), slug, targetPrice, email);

@@ -1,6 +1,8 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 
 import com.swiftcart.entity.Order;
 import com.swiftcart.enums.OrderStatus;
@@ -107,10 +109,10 @@ public class SellerController {
         
         User seller = getUserFromPrincipal(principal);
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
         if (!product.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized product modification");
+            throw new ForbiddenException("Unauthorized product modification");
         }
 
         List<String> urls = productService.uploadProductImages(
@@ -123,10 +125,10 @@ public class SellerController {
     public ResponseEntity<ApiResponse<Product>> editProduct(Principal principal, @PathVariable Long id, @RequestBody Product productRequest) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
         if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized product edit");
+            throw new ForbiddenException("Unauthorized product edit");
         }
 
         return ResponseEntity.ok(ApiResponse.success(productService.updateProduct(existing.getSlug(), productRequest)));
@@ -137,10 +139,10 @@ public class SellerController {
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteProduct(Principal principal, @PathVariable Long id) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
         if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized product removal");
+            throw new ForbiddenException("Unauthorized product removal");
         }
 
         productService.deleteProduct(id);
@@ -152,10 +154,10 @@ public class SellerController {
     public ResponseEntity<ApiResponse<Map<String, String>>> updateStock(Principal principal, @PathVariable Long id, @RequestParam int qty) {
         User seller = getUserFromPrincipal(principal);
         Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
         if (!existing.getSeller().getId().equals(seller.getId()) && seller.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Unauthorized stock modification");
+            throw new ForbiddenException("Unauthorized stock modification");
         }
 
         productService.updateStock(id, qty);
@@ -174,7 +176,6 @@ public class SellerController {
             Principal principal,
             @PathVariable String orderUuid,
             @RequestParam String trackingId) {
-        
         orderService.updateOrderStatusBySellerOrAdmin(orderUuid, OrderStatus.DISPATCHED);
         return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "message", "Order marked as shipped",
@@ -187,7 +188,7 @@ public class SellerController {
     @PreAuthorize("@swiftSecurity.isAdminOrSellerOwner(#sellerId)")
     public ResponseEntity<ApiResponse<User>> getSellerProfile(@PathVariable Long sellerId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new RuntimeException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
         return ResponseEntity.ok(ApiResponse.success(seller));
     }
 

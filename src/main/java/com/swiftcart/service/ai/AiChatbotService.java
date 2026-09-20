@@ -7,8 +7,10 @@ import com.swiftcart.entity.Order;
 import com.swiftcart.entity.OrderItem;
 import com.swiftcart.entity.User;
 import com.swiftcart.enums.OrderStatus;
+import com.swiftcart.enums.PaymentStatus;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.service.OrderService;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -115,7 +117,9 @@ public class AiChatbotService {
                                     }
                                 }
                             }
-                            String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
+                            String estimatedDelivery = order.getPlacedAt() != null 
+                                    ? order.getPlacedAt().toLocalDate().plusDays(4).toString() 
+                                    : java.time.LocalDate.now().plusDays(4).toString();
                             int totalItems = order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0;
                             ActiveOrderDTO orderDTO = new ActiveOrderDTO(
                                     order.getOrderUuid(),
@@ -188,10 +192,55 @@ public class AiChatbotService {
 
             case "RETURN":
             case "REFUND":
-                return AiChatResponseDTO.text(
-                        "You can return items within 7 days of delivery. Items must be unused with original tags and packaging intact. Click below to view our full returns policy.",
-                        List.of("🚚 Track my order", "🗣️ Talk to human"),
-                        "/info/returns-refunds"
+                if (user == null) {
+                    return AiChatResponseDTO.text(
+                            "You can return items within 7 days of delivery. Please log in to initiate a return or refund for your orders.",
+                            List.of("🔐 Account help"),
+                            "/login"
+                    );
+                }
+
+                List<Order> userOrders = orderRepository.findByUserId(
+                        user.getId(),
+                        PageRequest.of(0, 5, Sort.by("id").descending())
+                ).getContent();
+
+                List<Order> refundableOrders = userOrders.stream()
+                        .filter(o -> (o.getStatus() == OrderStatus.DELIVERED || o.getStatus() == OrderStatus.CANCELLED)
+                                && o.getPaymentStatus() == PaymentStatus.PAID
+                                && o.getRefundId() == null)
+                        .filter(o -> {
+                            if (o.getStatus() == OrderStatus.DELIVERED) {
+                                LocalDateTime refDate = o.getUpdatedAt() != null ? o.getUpdatedAt() : o.getPlacedAt();
+                                return refDate == null || !refDate.isBefore(LocalDateTime.now().minusDays(7));
+                            }
+                            return true;
+                        })
+                        .collect(Collectors.toList());
+
+                if (refundableOrders.isEmpty()) {
+                    return AiChatResponseDTO.text(
+                            "You don't have any recent orders eligible for a refund or return. Items must be returned within 7 days of delivery, or be paid cancelled orders.",
+                            List.of("🚚 Track my order", "🗣️ Talk to human"),
+                            "/info/returns-refunds"
+                    );
+                }
+
+                List<String> refundOptions = refundableOrders.stream()
+                        .map(o -> {
+                            String uuid = o.getOrderUuid();
+                            String shortUuid = (uuid != null && uuid.length() >= 8) ? uuid.substring(0, 8) : (uuid != null ? uuid : String.valueOf(o.getId()));
+                            return "Refund " + shortUuid;
+                        })
+                        .collect(Collectors.toList());
+
+                return new AiChatResponseDTO(
+                        "Please select the order you would like to request a refund/return for:",
+                        "options",
+                        List.of(),
+                        null,
+                        refundOptions,
+                        null
                 );
 
             case "PAYMENT":
@@ -236,7 +285,7 @@ public class AiChatbotService {
 
     private boolean isReturnRefundQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(return\\s+policy|refund\\s+policy|how\\s+to\\s+return|initiate\\s+a?\\s*return|request\\s+a?\\s*refund)\\b.*");
+        return text.matches("(?i).*\\b(return|refund|money\\s+back|replacement)\\b.*");
     }
 
     private boolean isPaymentQuery(String text) {

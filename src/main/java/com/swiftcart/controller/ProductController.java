@@ -11,12 +11,12 @@ import com.swiftcart.service.ProductService;
 import com.swiftcart.service.SearchService;
 import com.swiftcart.event.LiveActivityEvent;
 import com.swiftcart.kafka.producer.LiveActivityProducer;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/products")
-@Transactional(readOnly = true)
 public class ProductController {
 
     private final ProductService productService;
@@ -127,7 +126,7 @@ public class ProductController {
     @GetMapping("/{id}/related")
     public ResponseEntity<ApiResponse<List<Product>>> getRelatedProducts(@PathVariable Long id, @RequestParam(defaultValue = "5") int limit) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         List<Product> products = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, limit));
         return ResponseEntity.ok(ApiResponse.success(products));
@@ -135,9 +134,8 @@ public class ProductController {
 
     @GetMapping("/{id}/frequently-bought")
     public ResponseEntity<ApiResponse<List<Product>>> getFrequentlyBoughtTogether(@PathVariable Long id) {
-        
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         List<Product> list = productRepository.findRelatedProducts(
                 product.getCategory().getId(), id, PageRequest.of(0, 3));
         return ResponseEntity.ok(ApiResponse.success(list));

@@ -1,6 +1,8 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.DuplicateResourceException;
+import com.swiftcart.exception.ResourceNotFoundException;
 
 import com.swiftcart.entity.Product;
 import com.swiftcart.entity.User;
@@ -42,10 +44,10 @@ public class WishlistController {
     public ResponseEntity<ApiResponse<WishlistItem>> addToWishlist(Principal principal, @PathVariable Long productId) {
         User user = getUserFromPrincipal(principal);
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         if (wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId)) {
-            throw new RuntimeException("Product is already in your wishlist");
+            throw new DuplicateResourceException("Product is already in your wishlist");
         }
 
         WishlistItem item = WishlistItem.builder()
@@ -62,7 +64,7 @@ public class WishlistController {
         User user = getUserFromPrincipal(principal);
 
         if (!wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId)) {
-            throw new RuntimeException("Product is not in your wishlist");
+            throw new ResourceNotFoundException("Product is not in your wishlist");
         }
 
         wishlistItemRepository.deleteByUserIdAndProductId(user.getId(), productId);
