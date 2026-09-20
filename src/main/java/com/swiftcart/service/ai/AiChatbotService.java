@@ -272,35 +272,58 @@ public class AiChatbotService {
         }
     }
 
+    private static final java.util.regex.Pattern ORDER_TRACK_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(track(\\s+my)?\\s+order|where\\s+is\\s+my\\s+(order|package|delivery)|order\\s+status|tracking\\s+status|package\\s+status)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private static final java.util.regex.Pattern ORDER_CANCEL_PATTERN = java.util.regex.Pattern.compile(
+            "^\\s*cancel(\\s+my)?\\s+order\\s*$|\\b(cancel(\\s+my)?\\s+order|how\\s+to\\s+cancel(\\s+my)?\\s+order)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private static final java.util.regex.Pattern RETURN_REFUND_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(return|refund|money\\s+back|replacement)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private static final java.util.regex.Pattern PAYMENT_QUERY_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(payment\\s+fail(ed|ure)?|double\\s+debit|money\\s+deducted|transaction\\s+fail(ed|ure)?|payment\\s+issue)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private static final java.util.regex.Pattern ACCOUNT_QUERY_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(account\\s+help|reset\\s+password|my\\s+profile\\s+settings|change\\s+my\\s+address)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private static final java.util.regex.Pattern HUMAN_SUPPORT_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(talk\\s+to\\s+(a\\s+)?human|contact\\s+(customer\\s+)?support|speak\\s+with\\s+(an?\\s+)?agent|customer\\s+care\\s+number)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
     private boolean isOrderTrackingQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(track\\s+(my\\s+)?order|where\\s+is\\s+my\\s+(order|package|delivery)|order\\s+status|tracking\\s+status|package\\s+status)\\b.*");
+        return ORDER_TRACK_PATTERN.matcher(text).find();
     }
 
     private boolean isOrderCancellationQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i)^(\\s*cancel(\\s+(my\\s+)?order)?\\s*)$")
-                || text.matches("(?i).*\\b(cancel\\s+(my\\s+)?order|how\\s+to\\s+cancel\\s+(my\\s+)?order)\\b.*");
+        return ORDER_CANCEL_PATTERN.matcher(text).find();
     }
 
     private boolean isReturnRefundQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(return|refund|money\\s+back|replacement)\\b.*");
+        return RETURN_REFUND_PATTERN.matcher(text).find();
     }
 
     private boolean isPaymentQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(payment\\s+fail(ed|ure)?|double\\s+debit|money\\s+deducted|transaction\\s+fail(ed|ure)?|payment\\s+issue)\\b.*");
+        return PAYMENT_QUERY_PATTERN.matcher(text).find();
     }
 
     private boolean isAccountQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(account\\s+help|reset\\s+password|my\\s+profile\\s+settings|change\\s+my\\s+address)\\b.*");
+        return ACCOUNT_QUERY_PATTERN.matcher(text).find();
     }
 
     private boolean isHumanSupportQuery(String text) {
         if (text == null) return false;
-        return text.matches("(?i).*\\b(talk\\s+to\\s+(a\\s+)?human|contact\\s+(customer\\s+)?support|speak\\s+with\\s+(an?\\s+)?agent|customer\\s+care\\s+number)\\b.*");
+        return HUMAN_SUPPORT_PATTERN.matcher(text).find();
     }
 
     private String mapStatus(OrderStatus status) {

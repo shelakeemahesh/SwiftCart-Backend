@@ -144,11 +144,19 @@ public class Product {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public List<String> getHighlights() { return highlights; }
-    public void setHighlights(List<String> highlights) { this.highlights = highlights; }
+    public List<String> getHighlights() { 
+        return highlights == null ? null : new ArrayList<>(highlights); 
+    }
+    public void setHighlights(List<String> highlights) { 
+        this.highlights = highlights == null ? null : new ArrayList<>(highlights); 
+    }
 
-    public Map<String, String> getSpecifications() { return specifications; }
-    public void setSpecifications(Map<String, String> specifications) { this.specifications = specifications; }
+    public Map<String, String> getSpecifications() { 
+        return specifications == null ? null : new HashMap<>(specifications); 
+    }
+    public void setSpecifications(Map<String, String> specifications) { 
+        this.specifications = specifications == null ? null : new HashMap<>(specifications); 
+    }
 
     public BigDecimal getBasePrice() { return basePrice; }
     public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }

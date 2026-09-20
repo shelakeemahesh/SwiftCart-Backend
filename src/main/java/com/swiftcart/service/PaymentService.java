@@ -105,7 +105,7 @@ public class PaymentService {
                     .build();
             razorpayPaymentRepository.save(payment);
 
-            log.info("Razorpay order created: {} for SwiftCart order UUID: {}", rzpOrderId, orderUuid);
+            log.info("Razorpay order created: {} for SwiftCart order UUID: {}", clean(rzpOrderId), clean(orderUuid));
 
             return new RazorpayOrderResponse(
                     rzpOrderId,
@@ -115,7 +115,7 @@ public class PaymentService {
             );
 
         } catch (Exception e) {
-            log.error("Failed to create Razorpay order for UUID: {}", orderUuid, e);
+            log.error("Failed to create Razorpay order for UUID: {}", clean(orderUuid), e);
             throw new BadRequestException("Failed to initiate Razorpay order: " + e.getMessage());
         }
     }
@@ -184,13 +184,13 @@ public class PaymentService {
             log.warn("Redis is unavailable for webhook idempotency check. Proceeding without check. Error: {}", e.getMessage());
         }
         if (!isNew) {
-            log.info("Webhook already processed (Idempotency key: {})", signatureHeader);
+            log.info("Webhook already processed (Idempotency key: {})", clean(signatureHeader));
             return;
         }
 
         JSONObject event = new JSONObject(payload);
         String eventType = event.getString("event");
-        log.info("Processing Razorpay webhook event: {}", eventType);
+        log.info("Processing Razorpay webhook event: {}", clean(eventType));
 
         switch (eventType) {
             case "payment.captured" -> handlePaymentCaptured(event);
@@ -198,7 +198,7 @@ public class PaymentService {
             case "refund.processed" -> handleRefundProcessed(event);
             case "refund.failed"    -> handleRefundFailed(event);
             case "order.paid"       -> handleOrderPaid(event);
-            default -> log.info("Unhandled webhook event type: {}", eventType);
+            default -> log.info("Unhandled webhook event type: {}", clean(eventType));
         }
     }
 
@@ -363,21 +363,21 @@ public class PaymentService {
                 razorpayPaymentRepository.save(payment);
             });
 
-            log.info("Refund initiated successfully for order UUID: {}. Refund ID: {}", orderUuid, refundId);
+            log.info("Refund initiated successfully for order UUID: {}. Refund ID: {}", clean(orderUuid), clean(refundId));
             return new RefundResponse(refundId, refundStatus);
 
         } catch (Exception e) {
             if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeyId.contains("mock")
                     || (order.getPaymentRef() != null && order.getPaymentRef().startsWith("pay_test_"))
                     || (e.getMessage() != null && (e.getMessage().contains("api.razorpay.com") || e.getMessage().contains("nodename nor servname") || e.getMessage().contains("UnknownHostException")))) {
-                log.warn("Mock/Test/Sandbox Razorpay environment detected. Simulating refund for order {}", orderUuid);
+                log.warn("Mock/Test/Sandbox Razorpay environment detected. Simulating refund for order {}", clean(orderUuid));
                 String refundId = "rfnd_sim_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
                 order.setPaymentStatus(PaymentStatus.REFUND_INITIATED);
                 order.setRefundId(refundId);
                 orderRepository.save(order);
                 return new RefundResponse(refundId, "processed");
             }
-            log.error("Failed to process refund for order UUID: {}", orderUuid, e);
+            log.error("Failed to process refund for order UUID: {}", clean(orderUuid), e);
             throw new BadRequestException("Razorpay refund failed: " + e.getMessage());
         }
     }
@@ -430,11 +430,11 @@ public class PaymentService {
                 if (razorpayKeyId == null || razorpayKeyId.isBlank() || razorpayKeyId.contains("mock")
                         || (order.getPaymentRef() != null && order.getPaymentRef().startsWith("pay_test_"))
                         || (e.getMessage() != null && (e.getMessage().contains("api.razorpay.com") || e.getMessage().contains("nodename nor servname") || e.getMessage().contains("UnknownHostException")))) {
-                    log.warn("Mock/Test/Sandbox Razorpay environment detected. Simulating customer refund for order {}", orderUuid);
+                    log.warn("Mock/Test/Sandbox Razorpay environment detected. Simulating customer refund for order {}", clean(orderUuid));
                     refundId = "rfnd_sim_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
                     refundStatus = "processed";
                 } else {
-                    log.error("Failed to process Razorpay refund for order UUID: {}", orderUuid, e);
+                    log.error("Failed to process Razorpay refund for order UUID: {}", clean(orderUuid), e);
                     throw new BadRequestException("Razorpay refund failed: " + e.getMessage());
                 }
             }
@@ -458,7 +458,7 @@ public class PaymentService {
             });
         }
 
-        log.info("Customer refund initiated successfully for order UUID: {}. Refund ID: {}", orderUuid, refundId);
+        log.info("Customer refund initiated successfully for order UUID: {}. Refund ID: {}", clean(orderUuid), clean(refundId));
         return new RefundResponse(refundId, refundStatus);
     }
 
@@ -494,5 +494,12 @@ public class PaymentService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private String clean(String input) {
+        if (input == null) {
+            return "null";
+        }
+        return input.replace('\r', '_').replace('\n', '_');
     }
 }

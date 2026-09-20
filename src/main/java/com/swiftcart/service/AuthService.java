@@ -22,6 +22,8 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     @Value("${app.frontend.domain:http://localhost:5173}")
     private String frontendDomain;
 
@@ -213,9 +215,16 @@ public class AuthService {
     }
 
     public void logout(String refreshToken) {
-        if (refreshToken != null && jwtUtil.validateTokenOnly(refreshToken)) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        try {
             String username = jwtUtil.extractUsername(refreshToken);
-            redisService.delete("refresh:" + username);
+            if (username != null && !username.isBlank()) {
+                redisService.delete("refresh:" + username);
+            }
+        } catch (Exception e) {
+            log.warn("Unable to extract username during logout: {}", e.getMessage());
         }
     }
 
