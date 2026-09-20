@@ -3,17 +3,21 @@ package com.swiftcart.controller;
 import com.swiftcart.dto.request.AiChatRequest;
 import com.swiftcart.dto.request.CancelOrderRequest;
 import com.swiftcart.dto.request.ChatbotMessageRequest;
+import com.swiftcart.dto.request.RefundOrderRequest;
 import com.swiftcart.dto.response.ApiResponse;
 import com.swiftcart.dto.response.AiChatResponseDTO;
 import com.swiftcart.dto.response.ChatbotResponseDTO;
+import com.swiftcart.dto.response.RefundResponse;
 import com.swiftcart.dto.response.ReturnPolicyDTO;
 import com.swiftcart.entity.Order;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.OrderService;
+import com.swiftcart.service.PaymentService;
 import com.swiftcart.service.ai.AiChatbotService;
 import com.swiftcart.service.ai.ProductVectorSyncService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,18 +37,21 @@ public class ChatbotController {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final PaymentService paymentService;
 
     public ChatbotController(
             AiChatbotService aiChatbotService,
             ProductVectorSyncService productVectorSyncService,
             OrderService orderService,
             OrderRepository orderRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            PaymentService paymentService) {
         this.aiChatbotService = aiChatbotService;
         this.productVectorSyncService = productVectorSyncService;
         this.orderService = orderService;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -132,6 +139,50 @@ public class ChatbotController {
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.success(new ChatbotResponseDTO(
                     "Failed to cancel order: " + e.getMessage(),
+                    "text",
+                    null,
+                    List.of("🗣️ Talk to human", "🚚 Track my order"),
+                    null
+            )));
+        }
+    }
+
+    @PostMapping("/refund-order")
+    public ResponseEntity<ApiResponse<ChatbotResponseDTO>> refundOrder(
+            Principal principal,
+            @Valid @RequestBody RefundOrderRequest request) {
+
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        User user = getUserFromPrincipal(principal);
+        String uuid = request.getOrderId();
+
+        if (uuid != null && uuid.length() <= 8) {
+            final String target = uuid;
+            List<Order> matching = orderRepository.findByUserId(user.getId(), PageRequest.of(0, 100))
+                    .getContent()
+                    .stream()
+                    .filter(o -> o.getOrderUuid() != null && o.getOrderUuid().toLowerCase().startsWith(target.toLowerCase()))
+                    .collect(Collectors.toList());
+            if (!matching.isEmpty()) {
+                uuid = matching.get(0).getOrderUuid();
+            }
+        }
+
+        try {
+            RefundResponse refundResponse = paymentService.initiateCustomerRefund(uuid, user.getId(), request.getReason());
+            String shortUuid = (uuid != null && uuid.length() > 8) ? uuid.substring(0, 8) : uuid;
+            return ResponseEntity.ok(ApiResponse.success(new ChatbotResponseDTO(
+                    "Refund initiated successfully for order " + shortUuid + ". Refund ID: " + refundResponse.getRefundId() + ". Amount will reflect in 3-5 business days.",
+                    "text",
+                    null,
+                    List.of("🚚 Track my order", "🗣️ Talk to human"),
+                    null
+            )));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.success(new ChatbotResponseDTO(
+                    "Failed to process refund: " + e.getMessage(),
                     "text",
                     null,
                     List.of("🗣️ Talk to human", "🚚 Track my order"),

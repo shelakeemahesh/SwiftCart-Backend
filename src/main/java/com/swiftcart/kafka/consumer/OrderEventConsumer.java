@@ -45,7 +45,7 @@ public class OrderEventConsumer {
     }
 
     @Transactional
-    @KafkaListener(topics = KafkaConfig.ORDER_PLACED_TOPIC, groupId = "swiftcart-group")
+    @KafkaListener(topics = KafkaConfig.ORDER_PLACED_TOPIC, groupId = "${spring.kafka.consumer.group-id:swiftcart-group}")
     public void consumeOrderPlaced(String orderUuid) {
         log.info("Received OrderPlaced event from Kafka for UUID: {}", orderUuid);
         orderRepository.findByOrderUuid(orderUuid).ifPresent(order -> {
@@ -57,7 +57,7 @@ public class OrderEventConsumer {
     }
 
     @Transactional
-    @KafkaListener(topics = KafkaConfig.ORDER_STATUS_TOPIC, groupId = "swiftcart-group")
+    @KafkaListener(topics = KafkaConfig.ORDER_STATUS_TOPIC, groupId = "${spring.kafka.consumer.group-id:swiftcart-group}")
     public void consumeOrderStatusChange(
             @org.springframework.messaging.handler.annotation.Header(org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY) String orderUuid,
             @org.springframework.messaging.handler.annotation.Payload String status) {
@@ -74,7 +74,7 @@ public class OrderEventConsumer {
         });
     }
 
-    @KafkaListener(topics = KafkaConfig.PRODUCT_RATING_RECALC_TOPIC, groupId = "swiftcart-group")
+    @KafkaListener(topics = KafkaConfig.PRODUCT_RATING_RECALC_TOPIC, groupId = "${spring.kafka.consumer.group-id:swiftcart-group}")
     public void consumeProductRatingRecalculation(String productIdStr) {
         log.info("Received ProductRatingRecalc event from Kafka for Product ID: {}", productIdStr);
         try {
@@ -99,7 +99,7 @@ public class OrderEventConsumer {
         }
     }
 
-    @KafkaListener(topics = KafkaConfig.PRODUCT_INDEXING_TOPIC, groupId = "swiftcart-group")
+    @KafkaListener(topics = KafkaConfig.PRODUCT_INDEXING_TOPIC, groupId = "${spring.kafka.consumer.group-id:swiftcart-group}")
     public void consumeProductIndexing(String productIdStr) {
         log.info("Received ProductIndexing event from Kafka for Product ID: {}", productIdStr);
         try {

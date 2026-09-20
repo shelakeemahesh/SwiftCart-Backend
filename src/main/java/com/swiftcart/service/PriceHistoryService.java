@@ -8,6 +8,7 @@ import com.swiftcart.repository.PriceDropAlertRepository;
 import com.swiftcart.repository.ProductPriceHistoryRepository;
 import com.swiftcart.repository.ProductRepository;
 import com.swiftcart.repository.UserRepository;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -84,7 +85,7 @@ public class PriceHistoryService {
     @Transactional
     public List<ProductPriceHistory> getOrCreatePriceHistory(String slug) {
         Product product = productRepository.findBySlugWithDetails(slug)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with slug: " + slug));
 
         List<ProductPriceHistory> history = priceHistoryRepository.findByProductIdOrderByRecordedAtAsc(product.getId());
 
@@ -117,9 +118,9 @@ public class PriceHistoryService {
     @Transactional
     public PriceDropAlert createAlert(Long userId, String slug, BigDecimal targetPrice, String email) {
         Product product = productRepository.findBySlugWithDetails(slug)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with slug: " + slug));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         java.util.Optional<PriceDropAlert> existingAlertOpt = alertRepository
                 .findByUserIdAndProductIdAndIsTriggeredFalse(userId, product.getId());

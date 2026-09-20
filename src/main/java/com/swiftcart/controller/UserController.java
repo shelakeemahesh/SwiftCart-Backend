@@ -1,6 +1,9 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 
 import com.swiftcart.entity.Address;
 import com.swiftcart.entity.User;
@@ -51,8 +54,21 @@ public class UserController {
         String oldPassword = body.get("oldPassword");
         String newPassword = body.get("newPassword");
 
-        if (user.getPasswordHash() != null && !passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new RuntimeException("Incorrect current password");
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new BadRequestException("New password is required");
+        }
+
+        if (newPassword.length() < 6) {
+            throw new BadRequestException("New password must be at least 6 characters");
+        }
+
+        if (user.getPasswordHash() != null) {
+            if (oldPassword == null || oldPassword.isBlank()) {
+                throw new BadRequestException("Current password is required");
+            }
+            if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+                throw new BadRequestException("Incorrect current password");
+            }
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -85,10 +101,10 @@ public class UserController {
     public ResponseEntity<ApiResponse<Address>> updateAddress(Principal principal, @PathVariable Long id, @RequestBody Address updatedAddress) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Address not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + id));
 
         if (!address.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized address modification");
+            throw new ForbiddenException("Unauthorized address modification");
         }
 
         address.setLabel(updatedAddress.getLabel());
@@ -112,10 +128,10 @@ public class UserController {
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Address not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + id));
 
         if (!address.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized address removal");
+            throw new ForbiddenException("Unauthorized address removal");
         }
 
         addressRepository.delete(address);
@@ -127,10 +143,10 @@ public class UserController {
     public ResponseEntity<ApiResponse<Map<String, String>>> setDefaultAddress(Principal principal, @PathVariable Long id) {
         User user = getUserFromPrincipal(principal);
         Address address = addressRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Address not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + id));
 
         if (!address.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized address update");
+            throw new ForbiddenException("Unauthorized address update");
         }
 
         addressRepository.resetDefaultAddressForUser(user.getId());
@@ -144,7 +160,7 @@ public class UserController {
     @PreAuthorize("@swiftSecurity.isAdminOrCustomerOwner(#customerId)")
     public ResponseEntity<ApiResponse<User>> getCustomerProfile(@PathVariable Long customerId) {
         User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
         return ResponseEntity.ok(ApiResponse.success(customer));
     }
 

@@ -106,6 +106,14 @@ public class Product {
 
     public Product() {}
 
+    @PrePersist
+    @PreUpdate
+    protected void calculateDiscount() {
+        if (this.discountPercent == null) {
+            this.discountPercent = getCalculatedDiscountPercent();
+        }
+    }
+
     public BigDecimal getCalculatedDiscountPercent() {
         if (mrp == null || basePrice == null || mrp.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;

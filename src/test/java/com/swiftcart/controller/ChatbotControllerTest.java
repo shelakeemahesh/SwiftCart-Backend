@@ -10,6 +10,7 @@ import com.swiftcart.dto.response.ProductRecommendationDTO;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.OrderService;
+import com.swiftcart.service.PaymentService;
 import com.swiftcart.service.ai.AiChatbotService;
 import com.swiftcart.service.ai.ProductVectorSyncService;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ public class ChatbotControllerTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PaymentService paymentService;
+
     private ChatbotController chatbotController;
 
     @BeforeEach
@@ -56,7 +60,8 @@ public class ChatbotControllerTest {
                 productVectorSyncService,
                 orderService,
                 orderRepository,
-                userRepository
+                userRepository,
+                paymentService
         );
     }
 

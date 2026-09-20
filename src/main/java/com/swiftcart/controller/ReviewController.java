@@ -1,6 +1,10 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.DuplicateResourceException;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import com.swiftcart.dto.response.ProductSentimentSummaryDTO;
 import com.swiftcart.entity.Order;
 import com.swiftcart.enums.OrderStatus;
@@ -86,7 +90,7 @@ public class ReviewController {
 
         User user = getUserFromPrincipal(principal);
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         Page<Order> userOrders = orderRepository.findByUserId(user.getId(), PageRequest.of(0, 100));
         Optional<Order> verifiedOrderOpt = userOrders.getContent().stream()
@@ -95,13 +99,13 @@ public class ReviewController {
                 .findFirst();
 
         if (verifiedOrderOpt.isEmpty()) {
-            throw new RuntimeException("Review submission rejected: You must purchase and receive this product before reviewing it.");
+            throw new BadRequestException("Review submission rejected: You must purchase and receive this product before reviewing it.");
         }
 
         Order verifiedOrder = verifiedOrderOpt.get();
 
         if (reviewRepository.existsByUserIdAndProductIdAndOrderId(user.getId(), productId, verifiedOrder.getId())) {
-            throw new RuntimeException("Review already submitted for this product order");
+            throw new DuplicateResourceException("Review already submitted for this product order");
         }
 
         // Run LingPipe sentiment classification
@@ -140,10 +144,10 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<Review>> editReview(Principal principal, @PathVariable Long reviewId, @RequestBody Review updated) {
         User user = getUserFromPrincipal(principal);
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized edit request");
+            throw new ForbiddenException("Unauthorized edit request");
         }
 
         review.setTitle(updated.getTitle());
@@ -175,10 +179,10 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteReview(Principal principal, @PathVariable Long reviewId) {
         User user = getUserFromPrincipal(principal);
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized delete request");
+            throw new ForbiddenException("Unauthorized delete request");
         }
 
         reviewRepository.delete(review);
@@ -195,7 +199,7 @@ public class ReviewController {
     @PostMapping("/{reviewId}/helpful")
     public ResponseEntity<ApiResponse<Map<String, Object>>> markHelpful(Principal principal, @PathVariable Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + reviewId));
 
         review.setHelpfulCount(review.getHelpfulCount() + 1);
         reviewRepository.save(review);

@@ -41,7 +41,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2UserInfo oAuth2UserInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId, oAuth2User.getAttributes());
 
         if (oAuth2UserInfo.getEmail() == null || oAuth2UserInfo.getEmail().isEmpty()) {
-            throw new RuntimeException("Email not found from OAuth2 provider: " + registrationId);
+            throw new org.springframework.security.oauth2.core.OAuth2AuthenticationException("Email not found from OAuth2 provider: " + registrationId);
         }
 
         Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
@@ -71,9 +71,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
+        String name = oAuth2UserInfo.getName();
+        if (name == null || name.isBlank()) {
+            name = oAuth2UserInfo.getEmail().split("@")[0];
+        }
+
         User user = User.builder()
                 .email(oAuth2UserInfo.getEmail())
-                .name(oAuth2UserInfo.getName())
+                .name(name)
                 .role(Role.CUSTOMER)
                 .isVerified(true)
                 .build();
@@ -87,8 +92,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
-        existingUser.setName(oAuth2UserInfo.getName());
-        existingUser.setAvatarUrl(oAuth2UserInfo.getImageUrl());
+        if (oAuth2UserInfo.getName() != null && !oAuth2UserInfo.getName().isBlank()) {
+            existingUser.setName(oAuth2UserInfo.getName());
+        }
+        if (oAuth2UserInfo.getImageUrl() != null && !oAuth2UserInfo.getImageUrl().isBlank()) {
+            existingUser.setAvatarUrl(oAuth2UserInfo.getImageUrl());
+        }
         return userRepository.save(existingUser);
     }
 }

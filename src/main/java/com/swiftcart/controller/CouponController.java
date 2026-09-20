@@ -4,6 +4,7 @@ import com.swiftcart.dto.response.ApiResponse;
 
 import com.swiftcart.entity.Coupon;
 import com.swiftcart.entity.User;
+import com.swiftcart.exception.BadRequestException;
 import com.swiftcart.repository.CouponRepository;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.service.PricingService;
@@ -33,8 +34,23 @@ public class CouponController {
     @PostMapping("/validate")
     public ResponseEntity<ApiResponse<Map<String, Object>>> validateCoupon(Principal principal, @RequestBody Map<String, Object> body) {
         User user = getUserFromPrincipal(principal);
-        String code = (String) body.get("code");
-        BigDecimal orderValue = new BigDecimal(body.get("orderValue").toString());
+
+        String code = body != null ? (String) body.get("code") : null;
+        if (code == null || code.isBlank()) {
+            throw new BadRequestException("Coupon code is required");
+        }
+
+        Object orderValueObj = body.get("orderValue");
+        if (orderValueObj == null) {
+            throw new BadRequestException("orderValue is required");
+        }
+
+        BigDecimal orderValue;
+        try {
+            orderValue = new BigDecimal(orderValueObj.toString());
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("orderValue must be a valid number");
+        }
 
         Coupon coupon = pricingService.validateCoupon(code, orderValue, user.getId());
         BigDecimal discount = pricingService.calculateCouponDiscount(coupon, orderValue);

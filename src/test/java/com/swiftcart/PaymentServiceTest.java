@@ -3,7 +3,9 @@ package com.swiftcart;
 import com.swiftcart.dto.request.PaymentVerifyRequest;
 import com.swiftcart.dto.response.PaymentVerifyResponse;
 import com.swiftcart.entity.Order;
+import com.swiftcart.entity.RazorpayPayment;
 import com.swiftcart.enums.PaymentStatus;
+import com.swiftcart.enums.RazorpayPaymentStatus;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.OrderRepository;
 import com.swiftcart.repository.UserRepository;
@@ -36,6 +38,9 @@ public class PaymentServiceTest {
 
     @Value("${razorpay.key.secret}")
     private String razorpayKeySecret;
+
+    @Value("${razorpay.webhook.secret}")
+    private String razorpayWebhookSecret;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -124,6 +129,54 @@ public class PaymentServiceTest {
         Assertions.assertThrows(RuntimeException.class, () -> {
             paymentService.verifyPayment(request);
         });
+    }
+
+    @Test
+    public void testProcessWebhook_PaymentCaptured_Success() {
+        String payload = "{\"event\":\"payment.captured\",\"payload\":{\"payment\":{\"entity\":{\"id\":\"pay_webhook123\",\"order_id\":\"order_test123\",\"method\":\"upi\"}}}}";
+        String signature = calculateHmacSha256(payload, razorpayWebhookSecret);
+
+        paymentService.processWebhook(payload, signature);
+
+        Order updatedOrder = orderRepository.findById(order.getId()).orElseThrow();
+        Assertions.assertEquals(PaymentStatus.PAID, updatedOrder.getPaymentStatus());
+        Assertions.assertEquals("pay_webhook123", updatedOrder.getPaymentRef());
+    }
+
+    @Test
+    public void testProcessWebhook_InvalidSignature_Failure() {
+        String payload = "{\"event\":\"payment.captured\",\"payload\":{\"payment\":{\"entity\":{\"id\":\"pay_tampered\",\"order_id\":\"order_test123\",\"method\":\"upi\"}}}}";
+        String signature = "invalid_tampered_signature";
+
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            paymentService.processWebhook(payload, signature);
+        });
+    }
+
+    @Test
+    public void testProcessWebhook_RefundFailed_RestoresPaymentStatus() {
+        order.setPaymentStatus(PaymentStatus.REFUND_INITIATED);
+        orderRepository.save(order);
+
+        RazorpayPayment rpPayment = razorpayPaymentRepository.save(RazorpayPayment.builder()
+                .order(order)
+                .razorpayOrderId("order_test123")
+                .razorpayPaymentId("pay_test_refund_fail")
+                .amountPaisa(25000L)
+                .currency("INR")
+                .status(RazorpayPaymentStatus.CAPTURED)
+                .build());
+
+        String payload = "{\"event\":\"refund.failed\",\"payload\":{\"refund\":{\"entity\":{\"id\":\"rfnd_fail999\",\"payment_id\":\"pay_test_refund_fail\"}}}}";
+        String signature = calculateHmacSha256(payload, razorpayWebhookSecret);
+
+        paymentService.processWebhook(payload, signature);
+
+        Order updatedOrder = orderRepository.findById(order.getId()).orElseThrow();
+        Assertions.assertEquals(PaymentStatus.PAID, updatedOrder.getPaymentStatus());
+
+        RazorpayPayment updatedPayment = razorpayPaymentRepository.findById(rpPayment.getId()).orElseThrow();
+        Assertions.assertEquals(RazorpayPaymentStatus.FAILED, updatedPayment.getStatus());
     }
 
     private String calculateHmacSha256(String data, String secret) {

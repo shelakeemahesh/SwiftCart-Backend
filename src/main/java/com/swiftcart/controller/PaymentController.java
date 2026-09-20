@@ -1,6 +1,7 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.BadRequestException;
 
 import com.swiftcart.dto.response.RazorpayOrderResponse;
 import com.swiftcart.dto.request.PaymentVerifyRequest;
@@ -30,7 +31,7 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<RazorpayOrderResponse>> createRazorpayOrder(@RequestBody Map<String, String> body) {
         String orderUuid = body.get("orderUuid");
         if (orderUuid == null) {
-            throw new RuntimeException("orderUuid is required in request body");
+            throw new BadRequestException("orderUuid is required in request body");
         }
         RazorpayOrderResponse response = paymentService.createRazorpayOrder(orderUuid);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -46,10 +47,16 @@ public class PaymentController {
     @PostMapping("/razorpay/webhook")
     public ResponseEntity<ApiResponse<Void>> handleWebhook(
             @RequestBody String payload,
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signatureHeader,
             @RequestHeader Map<String, String> headers) {
-        String signature = headers.get("x-razorpay-signature");
+        String signature = signatureHeader;
         if (signature == null) {
-            signature = headers.get("X-Razorpay-Signature");
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                if ("x-razorpay-signature".equalsIgnoreCase(entry.getKey())) {
+                    signature = entry.getValue();
+                    break;
+                }
+            }
         }
         paymentService.processWebhook(payload, signature);
         return ResponseEntity.ok(ApiResponse.success(null));

@@ -1,6 +1,8 @@
 package com.swiftcart.controller;
 
 import com.swiftcart.dto.response.ApiResponse;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.UnauthorizedException;
 
 import com.swiftcart.dto.request.*;
 import com.swiftcart.dto.response.*;
@@ -35,9 +37,10 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         AuthResponse authResponse = authService.verifyOtp(request.getPhone(), request.getOtp());
-        setRefreshTokenCookie(response, authResponse.getRefreshToken());
+        setRefreshTokenCookie(httpRequest, response, authResponse.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
@@ -56,9 +59,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         AuthResponse authResponse = authService.login(request);
-        setRefreshTokenCookie(response, authResponse.getRefreshToken());
+        setRefreshTokenCookie(httpRequest, response, authResponse.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
@@ -66,29 +70,41 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             HttpServletRequest request,
             HttpServletResponse response,
-            @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie) {
+            @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie,
+            @RequestBody(required = false) Map<String, String> body) {
 
         String token = refreshTokenFromCookie;
+        if (token == null && body != null) {
+            token = body.get("refreshToken");
+        }
         if (token == null) {
-            // This comment is written by human not ai - Fallback to reading request parameter/body if cookies not enabled/supported
             token = request.getParameter("refreshToken");
         }
 
-        if (token == null) {
-            throw new RuntimeException("Refresh token is missing");
+        if (token == null || token.isBlank()) {
+            throw new BadRequestException("Refresh token is missing");
         }
 
         AuthResponse authResponse = authService.refreshToken(token);
-        setRefreshTokenCookie(response, authResponse.getRefreshToken());
+        setRefreshTokenCookie(request, response, authResponse.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(authResponse));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Map<String, String>>> logout(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie,
+            @RequestBody(required = false) Map<String, String> body,
+            HttpServletRequest request,
             HttpServletResponse response) {
-        authService.logout(refreshToken);
-        clearRefreshTokenCookie(response);
+        String token = refreshTokenFromCookie;
+        if (token == null && body != null) {
+            token = body.get("refreshToken");
+        }
+        if (token == null) {
+            token = request.getParameter("refreshToken");
+        }
+        authService.logout(token);
+        clearRefreshTokenCookie(request, response);
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Logged out successfully")));
     }
 
@@ -104,22 +120,26 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Password reset successfully")));
     }
 
-    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+    private void setRefreshTokenCookie(HttpServletRequest request, HttpServletResponse response, String refreshToken) {
+        boolean isHttps = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false) 
+                .secure(isHttps) 
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60) 
-                .sameSite("Lax")
+                .sameSite(isHttps ? "None" : "Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
-    private void clearRefreshTokenCookie(HttpServletResponse response) {
+    private void clearRefreshTokenCookie(HttpServletRequest request, HttpServletResponse response) {
+        boolean isHttps = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
+                .secure(isHttps)
                 .path("/")
                 .maxAge(0)
+                .sameSite(isHttps ? "None" : "Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
@@ -127,7 +147,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(java.security.Principal principal) {
         if (principal == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
         UserResponse userResponse = authService.getCurrentUser(principal.getName());
         return ResponseEntity.ok(ApiResponse.success(userResponse));

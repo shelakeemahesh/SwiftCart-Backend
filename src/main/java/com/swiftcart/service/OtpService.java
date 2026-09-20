@@ -1,5 +1,6 @@
 package com.swiftcart.service;
 
+import com.swiftcart.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -22,7 +23,7 @@ public class OtpService {
         int count = countStr == null ? 0 : Integer.parseInt(countStr);
 
         if (count >= 3) {
-            throw new RuntimeException("OTP request limit exceeded for this hour. Maximum 3 requests allowed.");
+            throw new BadRequestException("OTP request limit exceeded for this hour. Maximum 3 requests allowed.");
         }
 
         redisService.incrementAndExpire(rateKey, Duration.ofHours(1));
@@ -41,7 +42,7 @@ public class OtpService {
         int attempts = attemptsStr == null ? 0 : Integer.parseInt(attemptsStr);
 
         if (attempts >= 5) {
-            throw new RuntimeException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
+            throw new BadRequestException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
         }
 
         String otpKey = "otp:" + phone;
