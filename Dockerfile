@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM maven:3-eclipse-temurin-24-alpine AS build
 WORKDIR /build
 
 # Cache dependencies
@@ -11,7 +11,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Production runtime stage
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:24-jre-alpine
 WORKDIR /app
 
 # Create unprivileged system group and user
