@@ -16,7 +16,7 @@
     <description>SwiftCart Backend Application</description>
     <properties>
         <java.version>21</java.version>
-        <springdoc.version>2.6.0</springdoc.version>
+        <springdoc.version>3.1.1</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <owasp-sanitizer.version>20260101.1</owasp-sanitizer.version>
