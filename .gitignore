@@ -1,7 +1,67 @@
+# Build output
 target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+
+# IDE & Editor Configurations
 .idea/
 *.iml
+*.iws
+*.ipr
+out/
+.vscode/
+.settings/
+.project
+.classpath
+*.swp
+*.swo
+
+# Maven Wrapper & Timings
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+mvnw.cmd
+
+# OS generated files
 .DS_Store
-uploads/
-scratch/
+._*
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Sonar / JaCoCo / Test coverage
+.sonar/
+.jacoco/
+jacoco.exec
+
+# Environment & Secrets
 .env
+**/.env
+*.env
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# Logs
+logs/
+*.log
+
+# Temporary and Scratch files
+scratch/
+audit_report.md
+uploads/
+tmp/
+*.tmp
+*.bak
+*~
