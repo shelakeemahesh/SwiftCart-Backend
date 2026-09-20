@@ -1,0 +1,13 @@
+# Global code owners
+* @shelakeemahesh
+
+# CI / CD and automation
+/.github/ @shelakeemahesh
+
+# Security and authentication
+/src/main/java/com/swiftcart/security/ @shelakeemahesh
+/src/main/java/com/swiftcart/config/ @shelakeemahesh
+
+# Documentation
+/docs/ @shelakeemahesh
+README.md @shelakeemahesh

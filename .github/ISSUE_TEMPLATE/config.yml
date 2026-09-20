@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 SwiftCart Engineering Discussions
+    url: https://github.com/shelakeemahesh/SwiftCart-Backend/discussions
+    about: Ask questions, discuss architecture, or seek development help.
+  - name: 🔒 Security Advisories
+    url: https://github.com/shelakeemahesh/SwiftCart-Backend/security/advisories
+    about: Report a security vulnerability privately.
