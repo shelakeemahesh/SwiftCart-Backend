@@ -21,7 +21,7 @@
         <thumbnailator.version>0.4.20</thumbnailator.version>
         <owasp-sanitizer.version>20260101.1</owasp-sanitizer.version>
         <aws.sdk.version>2.25.27</aws.sdk.version>
-        <spring-ai.version>1.0.0-M4</spring-ai.version>
+        <spring-ai.version>2.0.1</spring-ai.version>
         <lingpipe.version>4.1.0</lingpipe.version>
     </properties>
     <dependencies>
