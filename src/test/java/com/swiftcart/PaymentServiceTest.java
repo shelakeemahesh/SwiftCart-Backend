@@ -66,10 +66,23 @@ public class PaymentServiceTest {
     @Autowired
     private CartRepository cartRepository;
 
+    @Autowired(required = false)
+    private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+
     private Order order;
 
     @BeforeEach
     public void setup() {
+        if (stringRedisTemplate != null) {
+            try {
+                java.util.Set<String> keys = stringRedisTemplate.keys("webhook_processed:*");
+                if (keys != null && !keys.isEmpty()) {
+                    stringRedisTemplate.delete(keys);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
         cartRepository.deleteAll();
         reviewRepository.deleteAll();
         razorpayPaymentRepository.deleteAll();
