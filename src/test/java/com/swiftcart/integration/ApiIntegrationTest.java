@@ -27,6 +27,17 @@ public class ApiIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.swiftcart.service.RedisFallbackService redisFallbackService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        redisFallbackService.delete("otp:rate:9870001111");
+        redisFallbackService.delete("otp:rate:9870002222");
+        redisFallbackService.delete("otp:9870001111");
+        redisFallbackService.delete("otp:9870002222");
+    }
+
     @Test
     void testCustomerRegistrationFlow() throws Exception {
         

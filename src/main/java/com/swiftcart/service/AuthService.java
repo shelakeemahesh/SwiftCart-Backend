@@ -127,7 +127,7 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -143,7 +143,7 @@ public class AuthService {
             throw new BadRequestException("Account is not verified. Please verify using OTP.");
         }
 
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     @Transactional
@@ -194,11 +194,21 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(String oldRefreshToken) {
-        if (oldRefreshToken == null || !jwtUtil.validateTokenOnly(oldRefreshToken)) {
+        if (oldRefreshToken == null || oldRefreshToken.isBlank()) {
             throw new UnauthorizedException("Invalid refresh token");
         }
 
-        String username = jwtUtil.extractUsername(oldRefreshToken);
+        String username;
+        try {
+            username = jwtUtil.extractUsername(oldRefreshToken);
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
+        if (username == null || username.isBlank()) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
         String redisKey = "refresh:" + username;
         String storedRefreshToken = redisService.get(redisKey);
 
@@ -211,7 +221,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with identifier: " + username));
 
         redisService.delete(redisKey);
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     public void logout(String refreshToken) {
@@ -261,7 +271,7 @@ public class AuthService {
         redisService.delete(redisKey);
     }
 
-    public AuthResponse generateAuthResponse(User user) {
+    public AuthResponse issueTokenResponse(User user) {
         String username = user.getPhone() != null ? user.getPhone() : user.getEmail();
         String accessToken = jwtUtil.generateAccessToken(username, user.getId(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(username);

@@ -151,7 +151,7 @@ public class PaymentService {
                     notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
                 }
             }
-            log.info("Payment verified successfully via signature verification for order UUID: {}", order.getOrderUuid());
+            log.info("Payment verified successfully via signature verification for order UUID: {}", clean(order.getOrderUuid()));
         }
 
         razorpayPaymentRepository.findByRazorpayOrderId(req.getRazorpayOrderId()).ifPresent(payment -> {
@@ -181,7 +181,7 @@ public class PaymentService {
                 isNew = result;
             }
         } catch (Exception e) {
-            log.warn("Redis is unavailable for webhook idempotency check. Proceeding without check. Error: {}", e.getMessage());
+            log.warn("Redis is unavailable for webhook idempotency check. Proceeding without check. Error: {}", clean(e.getMessage()));
         }
         if (!isNew) {
             log.info("Webhook already processed (Idempotency key: {})", clean(signatureHeader));
@@ -223,7 +223,7 @@ public class PaymentService {
                         notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
                     }
                 }
-                log.info("Webhook marked order {} as PAID (payment captured)", order.getOrderUuid());
+                log.info("Webhook marked order {} as PAID (payment captured)", clean(order.getOrderUuid()));
             }
 
             razorpayPaymentRepository.findByRazorpayOrderId(rzpOrderId).ifPresent(payment -> {
@@ -247,7 +247,7 @@ public class PaymentService {
                 if (order.getPaymentStatus() == PaymentStatus.PENDING) {
                     order.setPaymentStatus(PaymentStatus.FAILED);
                     orderRepository.save(order);
-                    log.info("Webhook marked order {} as FAILED", order.getOrderUuid());
+                    log.info("Webhook marked order {} as FAILED", clean(order.getOrderUuid()));
                 }
 
                 razorpayPaymentRepository.findByRazorpayOrderId(rzpOrderId).ifPresent(payment -> {
@@ -272,7 +272,7 @@ public class PaymentService {
                 order.setPaymentStatus(PaymentStatus.REFUNDED);
                 order.setRefundId(refundId);
                 orderRepository.save(order);
-                log.info("Webhook marked order {} as REFUNDED", order.getOrderUuid());
+                log.info("Webhook marked order {} as REFUNDED", clean(order.getOrderUuid()));
             }
 
             payment.setRefundId(refundId);
@@ -293,7 +293,7 @@ public class PaymentService {
                 if (order != null && order.getPaymentStatus() == PaymentStatus.REFUND_INITIATED) {
                     order.setPaymentStatus(PaymentStatus.PAID);
                     orderRepository.save(order);
-                    log.warn("Webhook marked refund {} as failed for order {}. Restored payment status to PAID.", refundId, order.getOrderUuid());
+                    log.warn("Webhook marked refund {} as failed for order {}. Restored payment status to PAID.", clean(refundId), clean(order.getOrderUuid()));
                 }
 
                 payment.setStatus(RazorpayPaymentStatus.FAILED);
@@ -320,7 +320,7 @@ public class PaymentService {
                         notificationService.sendOrderStatusUpdate(order.getUser().getEmail(), order.getOrderUuid(), "CONFIRMED");
                     }
                 }
-                log.info("Webhook marked order {} as PAID (order.paid event)", order.getOrderUuid());
+                log.info("Webhook marked order {} as PAID (order.paid event)", clean(order.getOrderUuid()));
             }
         });
     }
