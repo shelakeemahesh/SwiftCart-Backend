@@ -3,6 +3,7 @@ package com.swiftcart.controller;
 import com.swiftcart.dto.response.ApiResponse;
 
 import com.swiftcart.enums.*;
+import com.swiftcart.exception.ResourceNotFoundException;
 
 import com.swiftcart.entity.*;
 import com.swiftcart.repository.CouponRepository;
@@ -81,7 +82,7 @@ public class AdminController {
     @PutMapping("/users/{id}/role")
     public ResponseEntity<ApiResponse<User>> changeUserRole(@PathVariable Long id, @RequestParam Role role) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setRole(role);
         return ResponseEntity.ok(ApiResponse.success(userRepository.save(user)));
     }
@@ -89,7 +90,7 @@ public class AdminController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<ApiResponse<Map<String, String>>> deactivateUser(@PathVariable Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setVerified(false);
         userRepository.save(user);
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "User deactivated successfully")));
@@ -98,7 +99,7 @@ public class AdminController {
     @PutMapping("/users/{id}/verify")
     public ResponseEntity<ApiResponse<User>> verifyUser(@PathVariable Long id, @RequestParam boolean verified) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setVerified(verified);
         return ResponseEntity.ok(ApiResponse.success(userRepository.save(user)));
     }
@@ -113,7 +114,7 @@ public class AdminController {
     @PutMapping("/products/{id}/approve")
     public ResponseEntity<ApiResponse<Product>> approveProduct(@PathVariable Long id) {
         Product p = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         p.setActive(true);
         return ResponseEntity.ok(ApiResponse.success(productService.saveProduct(p)));
     }
@@ -121,9 +122,12 @@ public class AdminController {
     @PutMapping("/products/{id}/reject")
     public ResponseEntity<ApiResponse<Product>> rejectProduct(@PathVariable Long id, @RequestParam String reason) {
         Product p = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         p.setActive(false);
-        
+        if (p.getSpecifications() == null) {
+            p.setSpecifications(new HashMap<>());
+        }
+        p.getSpecifications().put("rejectionReason", reason);
         return ResponseEntity.ok(ApiResponse.success(productService.saveProduct(p)));
     }
 
@@ -136,16 +140,14 @@ public class AdminController {
 
     @GetMapping("/analytics/sales")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSalesAnalytics() {
-        List<Order> orders = orderRepository.findAll();
-        BigDecimal totalSales = orders.stream()
-                .filter(o -> o.getStatus() != OrderStatus.CANCELLED)
-                .map(Order::getFinalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSales = orderRepository.calculateTotalSalesRevenue(OrderStatus.CANCELLED);
+        long totalOrders = orderRepository.count();
+        long activeOrders = orderRepository.countByStatusIn(List.of(OrderStatus.PROCESSING, OrderStatus.DISPATCHED));
 
         Map<String, Object> data = new HashMap<>();
         data.put("totalSalesRevenue", totalSales);
-        data.put("totalOrdersCount", orders.size());
-        data.put("activeOrdersCount", orders.stream().filter(o -> o.getStatus() == OrderStatus.PROCESSING || o.getStatus() == OrderStatus.DISPATCHED).count());
+        data.put("totalOrdersCount", totalOrders);
+        data.put("activeOrdersCount", activeOrders);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
@@ -178,7 +180,7 @@ public class AdminController {
     @PutMapping("/coupons/{id}")
     public ResponseEntity<ApiResponse<Coupon>> editCoupon(@PathVariable Long id, @RequestBody Coupon req) {
         Coupon c = couponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Coupon not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found with id: " + id));
         c.setCode(req.getCode());
         c.setType(req.getType());
         c.setValue(req.getValue());
@@ -193,7 +195,7 @@ public class AdminController {
     @DeleteMapping("/coupons/{id}")
     public ResponseEntity<ApiResponse<Map<String, String>>> deactivateCoupon(@PathVariable Long id) {
         Coupon c = couponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Coupon not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found with id: " + id));
         c.setActive(false);
         couponRepository.save(c);
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "Coupon deactivated successfully")));
@@ -214,7 +216,7 @@ public class AdminController {
     @PostMapping("/flash-sales")
     public ResponseEntity<ApiResponse<FlashSale>> createFlashSale(@RequestBody FlashSale sale) {
         Product p = productRepository.findById(sale.getProduct().getId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + sale.getProduct().getId()));
         sale.setProduct(p);
         return ResponseEntity.ok(ApiResponse.success(flashSaleRepository.save(sale)));
     }

@@ -29,7 +29,7 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         String targetUrl = getCookie(request, HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME)
                 .map(Cookie::getValue)
-                .orElse(frontendDomain + "/login");
+                .orElseGet(() -> getDefaultLoginUrl(request));
 
         targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("error", exception.getLocalizedMessage())
@@ -38,6 +38,20 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
         httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String getDefaultLoginUrl(HttpServletRequest request) {
+        boolean isSecure = request != null && (request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"))
+                || "https".equalsIgnoreCase(request.getHeader("x-forwarded-proto")));
+
+        if (frontendDomain != null && !frontendDomain.isBlank() && !frontendDomain.contains("localhost")) {
+            return frontendDomain.replaceAll("/+$", "") + "/login";
+        }
+        if (isSecure) {
+            return "https://swiftcart-frontend.vercel.app/login";
+        }
+        return "http://localhost:5173/login";
     }
 
     private Optional<Cookie> getCookie(HttpServletRequest request, String name) {

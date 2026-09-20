@@ -6,6 +6,9 @@ import com.swiftcart.repository.*;
 import com.swiftcart.kafka.producer.OrderEventProducer;
 import com.swiftcart.event.LiveActivityEvent;
 import com.swiftcart.kafka.producer.LiveActivityProducer;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -66,11 +69,23 @@ public class OrderService {
         return orderRepository.findByUserId(userId, pageable);
     }
 
+    @Transactional(readOnly = true)
     public java.util.Optional<Order> getLatestActiveOrder(Long userId) {
         List<OrderStatus> inactiveStatuses = List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.RETURNED);
-        return orderRepository.findFirstByUserIdAndStatusNotInOrderByIdDesc(userId, inactiveStatuses);
+        java.util.Optional<Order> orderOpt = orderRepository.findFirstByUserIdAndStatusNotInOrderByIdDesc(userId, inactiveStatuses);
+        orderOpt.ifPresent(order -> {
+            if (order.getItems() != null) {
+                for (OrderItem item : order.getItems()) {
+                    if (item.getProduct() != null && item.getProduct().getImages() != null) {
+                        org.hibernate.Hibernate.initialize(item.getProduct().getImages());
+                    }
+                }
+            }
+        });
+        return orderOpt;
     }
 
+    @Transactional(readOnly = true)
     public Order getOrderDetail(String orderUuid) {
         java.util.Optional<Order> orderOpt = orderRepository.findByOrderUuid(orderUuid);
         if (orderOpt.isEmpty() && orderUuid != null && orderUuid.matches("\\d+")) {
@@ -78,7 +93,15 @@ public class OrderService {
                 orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
             } catch (Exception ignored) {}
         }
-        return orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
+        Order order = orderOpt.orElseThrow(() -> new ResourceNotFoundException("Order not found with identifier: " + orderUuid));
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                if (item.getProduct() != null && item.getProduct().getImages() != null) {
+                    org.hibernate.Hibernate.initialize(item.getProduct().getImages());
+                }
+            }
+        }
+        return order;
     }
 
     @Transactional
@@ -87,14 +110,14 @@ public class OrderService {
 
         List<CartItem> cartItems = cartRepository.findAndLockByUserId(userId);
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cannot place order with an empty cart");
+            throw new BadRequestException("Cannot place order with an empty cart");
         }
 
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new RuntimeException("Shipping address not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Shipping address not found"));
 
         if (!address.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized address usage");
+            throw new ForbiddenException("Unauthorized address usage");
         }
 
         BigDecimal mrpTotal = BigDecimal.ZERO;
@@ -106,26 +129,26 @@ public class OrderService {
             ProductVariant variant = null;
 
             product = productRepository.findAndLockById(item.getProduct().getId())
-                    .orElseThrow(() -> new RuntimeException("Product no longer exists"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product no longer exists"));
 
             if (!product.isActive()) {
-                throw new RuntimeException("Product '" + product.getName() + "' is no longer active");
+                throw new BadRequestException("Product '" + product.getName() + "' is no longer active");
             }
 
             int requestedQty = item.getQuantity();
 
             if (item.getVariant() != null) {
                 variant = variantRepository.findAndLockById(item.getVariant().getId())
-                        .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Variant no longer exists"));
                 if (variant.getStockQty() < requestedQty) {
-                    throw new RuntimeException("Insufficient stock for variant of product: " + product.getName());
+                    throw new BadRequestException("Insufficient stock for variant of product: " + product.getName());
                 }
                 
                 variant.setStockQty(variant.getStockQty() - requestedQty);
                 variantRepository.save(variant);
             } else {
                 if (product.getStockQty() < requestedQty) {
-                    throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                    throw new BadRequestException("Insufficient stock for product: " + product.getName());
                 }
                 
                 product.setStockQty(product.getStockQty() - requestedQty);
@@ -215,7 +238,7 @@ public class OrderService {
         if (appliedCoupon != null) {
             int updated = couponRepository.incrementUsedCount(appliedCoupon.getId());
             if (updated == 0) {
-                throw new RuntimeException("Coupon usage limit has been exceeded");
+                throw new BadRequestException("Coupon usage limit has been exceeded");
             }
         }
 
@@ -253,14 +276,14 @@ public class OrderService {
                 orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
             } catch (Exception ignored) {}
         }
-        Order order = orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
+        Order order = orderOpt.orElseThrow(() -> new ResourceNotFoundException("Order not found with identifier: " + orderUuid));
 
         if (!order.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized cancel request");
+            throw new ForbiddenException("Unauthorized cancel request");
         }
 
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new RuntimeException("Order is in state " + order.getStatus() + " and cannot be cancelled");
+            throw new BadRequestException("Order is in state " + order.getStatus() + " and cannot be cancelled");
         }
 
         order.setStatus(OrderStatus.CANCELLED);
@@ -270,12 +293,12 @@ public class OrderService {
 
         for (OrderItem item : order.getItems()) {
             Product product = productRepository.findAndLockById(item.getProduct().getId())
-                    .orElseThrow(() -> new RuntimeException("Product no longer exists"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product no longer exists"));
             product.setSoldCount(Math.max(0, product.getSoldCount() - item.getQuantity()));
 
             if (item.getVariant() != null) {
                 ProductVariant variant = variantRepository.findAndLockById(item.getVariant().getId())
-                    .orElseThrow(() -> new RuntimeException("Variant no longer exists"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Variant no longer exists"));
                 variant.setStockQty(variant.getStockQty() + item.getQuantity());
                 variantRepository.save(variant);
             } else {
@@ -305,14 +328,14 @@ public class OrderService {
                 orderOpt = orderRepository.findById(Long.parseLong(orderUuid));
             } catch (Exception ignored) {}
         }
-        Order order = orderOpt.orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderUuid));
+        Order order = orderOpt.orElseThrow(() -> new ResourceNotFoundException("Order not found with identifier: " + orderUuid));
 
         if (!order.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized return request");
+            throw new ForbiddenException("Unauthorized return request");
         }
 
         if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new RuntimeException("Only delivered orders can be returned");
+            throw new BadRequestException("Only delivered orders can be returned");
         }
 
         order.setStatus(OrderStatus.RETURN_REQUESTED);
@@ -332,7 +355,7 @@ public class OrderService {
     @Transactional
     public Order updateOrderStatusBySellerOrAdmin(String orderUuid, OrderStatus newStatus) {
         Order order = orderRepository.findAndLockByOrderUuid(orderUuid)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with identifier: " + orderUuid));
 
         validateStatusTransition(order.getStatus(), newStatus);
 
@@ -365,7 +388,7 @@ public class OrderService {
             default -> false;
         };
         if (!valid) {
-            throw new RuntimeException("Invalid order status transition from " + current + " to " + next);
+            throw new BadRequestException("Invalid order status transition from " + current + " to " + next);
         }
     }
 

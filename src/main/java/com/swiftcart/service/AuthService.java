@@ -6,6 +6,10 @@ import com.swiftcart.enums.Role;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.UserRepository;
 import com.swiftcart.util.JwtUtil;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.DuplicateResourceException;
+import com.swiftcart.exception.ResourceNotFoundException;
+import com.swiftcart.exception.UnauthorizedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +21,8 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthService.class);
 
     @Value("${app.frontend.domain:http://localhost:5173}")
     private String frontendDomain;
@@ -74,14 +80,14 @@ public class AuthService {
         if (!valid) {
             // This comment is written by human not ai - Check fallback in MySQL user record
             User user = userRepository.findByPhone(phone)
-                    .orElseThrow(() -> new RuntimeException("Verification failed. Incorrect OTP or user does not exist."));
+                    .orElseThrow(() -> new BadRequestException("Verification failed. Incorrect OTP or user does not exist."));
 
             String attemptsKey = "otp:attempts:" + phone;
             String attemptsStr = redisService.get(attemptsKey);
             int attempts = attemptsStr == null ? 0 : Integer.parseInt(attemptsStr);
 
             if (attempts >= 5) {
-                throw new RuntimeException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
+                throw new BadRequestException("Maximum OTP verification attempts exceeded. Please generate a new OTP.");
             }
 
             boolean matches = user.getOtp() != null && java.security.MessageDigest.isEqual(
@@ -101,11 +107,11 @@ public class AuthService {
         }
 
         if (!valid) {
-            throw new RuntimeException("Invalid or expired OTP");
+            throw new BadRequestException("Invalid or expired OTP");
         }
 
         User user = userRepository.findByPhone(phone)
-                .orElseThrow(() -> new RuntimeException("User not found after OTP verification"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after OTP verification with phone: " + phone));
 
         // Elevate roles automatically for standard sandbox test accounts
         if ((phone.equals("8888888888") || phone.equals("9503072201")) && user.getRole() != Role.ADMIN) {
@@ -121,32 +127,32 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByPhone(request.getIdentifier())
                 .or(() -> userRepository.findByEmail(request.getIdentifier()))
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new BadRequestException("Invalid credentials");
         }
 
         if (!user.isVerified()) {
-            throw new RuntimeException("Account is not verified. Please verify using OTP.");
+            throw new BadRequestException("Account is not verified. Please verify using OTP.");
         }
 
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone number already registered");
+            throw new DuplicateResourceException("Phone number already registered");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email address already registered");
+            throw new DuplicateResourceException("Email address already registered");
         }
 
         User user = User.builder()
@@ -164,10 +170,10 @@ public class AuthService {
     @Transactional
     public void registerSeller(SellerRegisterRequest request) {
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone number already registered");
+            throw new DuplicateResourceException("Phone number already registered");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email address already registered");
+            throw new DuplicateResourceException("Email address already registered");
         }
 
         User user = User.builder()
@@ -188,36 +194,53 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(String oldRefreshToken) {
-        if (oldRefreshToken == null || !jwtUtil.validateTokenOnly(oldRefreshToken)) {
-            throw new RuntimeException("Invalid refresh token");
+        if (oldRefreshToken == null || oldRefreshToken.isBlank()) {
+            throw new UnauthorizedException("Invalid refresh token");
         }
 
-        String username = jwtUtil.extractUsername(oldRefreshToken);
+        String username;
+        try {
+            username = jwtUtil.extractUsername(oldRefreshToken);
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
+        if (username == null || username.isBlank()) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+
         String redisKey = "refresh:" + username;
         String storedRefreshToken = redisService.get(redisKey);
 
         if (storedRefreshToken == null || !storedRefreshToken.equals(oldRefreshToken)) {
-            throw new RuntimeException("Refresh token is invalid or has been rotated");
+            throw new UnauthorizedException("Refresh token is invalid or has been rotated");
         }
 
         User user = userRepository.findByPhone(username)
                 .or(() -> userRepository.findByEmail(username))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with identifier: " + username));
 
         redisService.delete(redisKey);
-        return generateAuthResponse(user);
+        return issueTokenResponse(user);
     }
 
     public void logout(String refreshToken) {
-        if (refreshToken != null && jwtUtil.validateTokenOnly(refreshToken)) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        try {
             String username = jwtUtil.extractUsername(refreshToken);
-            redisService.delete("refresh:" + username);
+            if (username != null && !username.isBlank()) {
+                redisService.delete("refresh:" + username);
+            }
+        } catch (Exception e) {
+            log.warn("Unable to extract username during logout: {}", e.getMessage());
         }
     }
 
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
         String token = UUID.randomUUID().toString();
         String redisKey = "reset:" + token;
@@ -236,11 +259,11 @@ public class AuthService {
         String email = redisService.get(redisKey);
 
         if (email == null) {
-            throw new RuntimeException("Password reset token is invalid or has expired");
+            throw new BadRequestException("Password reset token is invalid or has expired");
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -248,7 +271,7 @@ public class AuthService {
         redisService.delete(redisKey);
     }
 
-    public AuthResponse generateAuthResponse(User user) {
+    public AuthResponse issueTokenResponse(User user) {
         String username = user.getPhone() != null ? user.getPhone() : user.getEmail();
         String accessToken = jwtUtil.generateAccessToken(username, user.getId(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(username);
@@ -277,7 +300,7 @@ public class AuthService {
                         return java.util.Optional.empty();
                     }
                 })
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         return new UserResponse(
                 user.getId(),
                 user.getName(),

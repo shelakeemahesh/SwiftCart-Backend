@@ -6,6 +6,9 @@ import com.swiftcart.entity.FlashSale;
 import com.swiftcart.entity.Product;
 import com.swiftcart.repository.CouponRepository;
 import com.swiftcart.repository.FlashSaleRepository;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -50,22 +53,22 @@ public class PricingService {
 
     public Coupon validateCoupon(String code, BigDecimal orderValue, Long userId) {
         Coupon coupon = couponRepository.findByCodeAndIsActiveTrue(code)
-                .orElseThrow(() -> new RuntimeException("Coupon not found or inactive"));
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found or inactive: " + code));
 
         if (coupon.getExpiresAt() != null && coupon.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Coupon has expired");
+            throw new BadRequestException("Coupon has expired");
         }
 
         if (coupon.getUsageLimit() != null && coupon.getUsedCount() >= coupon.getUsageLimit()) {
-            throw new RuntimeException("Coupon usage limit exceeded");
+            throw new BadRequestException("Coupon usage limit exceeded");
         }
 
         if (coupon.getUserId() != null && !coupon.getUserId().equals(userId)) {
-            throw new RuntimeException("Coupon is not valid for this user");
+            throw new ForbiddenException("Coupon is not valid for this user");
         }
 
         if (orderValue.compareTo(coupon.getMinOrderValue()) < 0) {
-            throw new RuntimeException("Minimum order value to apply this coupon is " + coupon.getMinOrderValue());
+            throw new BadRequestException("Minimum order value to apply this coupon is " + coupon.getMinOrderValue());
         }
 
         return coupon;

@@ -1,6 +1,8 @@
 package com.swiftcart.service;
 
 import com.swiftcart.entity.Category;
+import com.swiftcart.exception.DuplicateResourceException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import com.swiftcart.repository.CategoryRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -39,14 +41,14 @@ public class CategoryService {
                 catOpt = categoryRepository.findById(Long.parseLong(slug));
             } catch (Exception ignored) {}
         }
-        return catOpt.orElseThrow(() -> new RuntimeException("Category not found with identifier: " + slug));
+        return catOpt.orElseThrow(() -> new ResourceNotFoundException("Category not found with identifier: " + slug));
     }
 
     @Transactional
     @CacheEvict(value = "categoryTree", allEntries = true)
     public Category createCategory(Category category) {
         if (categoryRepository.findBySlug(category.getSlug()).isPresent()) {
-            throw new RuntimeException("Category slug already exists: " + category.getSlug());
+            throw new DuplicateResourceException("Category slug already exists: " + category.getSlug());
         }
         return categoryRepository.save(category);
     }

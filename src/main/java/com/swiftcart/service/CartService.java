@@ -5,6 +5,9 @@ import com.swiftcart.entity.Product;
 import com.swiftcart.entity.ProductVariant;
 import com.swiftcart.entity.User;
 import com.swiftcart.repository.*;
+import com.swiftcart.exception.BadRequestException;
+import com.swiftcart.exception.ForbiddenException;
+import com.swiftcart.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,22 +40,22 @@ public class CartService {
     @Transactional
     public CartItem addToCart(Long userId, Long productId, Long variantId, int quantity) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         ProductVariant variant = null;
         if (variantId != null) {
             variant = variantRepository.findById(variantId)
-                    .orElseThrow(() -> new RuntimeException("Product variant not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product variant not found with id: " + variantId));
             if (!variant.getProduct().getId().equals(product.getId())) {
-                throw new RuntimeException("Variant does not belong to the selected product");
+                throw new BadRequestException("Variant does not belong to the selected product");
             }
         }
 
         int stockAvailable = (variant != null) ? variant.getStockQty() : product.getStockQty();
         if (stockAvailable < quantity) {
-            throw new RuntimeException("Insufficient stock. Available: " + stockAvailable);
+            throw new BadRequestException("Insufficient stock. Available: " + stockAvailable);
         }
 
         Optional<CartItem> existingItemOpt = (variant != null)
@@ -64,7 +67,7 @@ public class CartService {
             item = existingItemOpt.get();
             int newQuantity = item.getQuantity() + quantity;
             if (stockAvailable < newQuantity) {
-                throw new RuntimeException("Insufficient stock for total updated quantity. Available: " + stockAvailable);
+                throw new BadRequestException("Insufficient stock for total updated quantity. Available: " + stockAvailable);
             }
             item.setQuantity(newQuantity);
         } else {
@@ -82,14 +85,14 @@ public class CartService {
     @Transactional
     public CartItem updateQuantity(Long userId, Long itemId, int quantity) {
         if (quantity <= 0) {
-            throw new RuntimeException("Quantity must be greater than 0");
+            throw new BadRequestException("Quantity must be greater than 0");
         }
 
         CartItem item = cartRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + itemId));
 
         if (!item.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized access to cart item");
+            throw new ForbiddenException("Unauthorized access to cart item");
         }
 
         int stockAvailable = (item.getVariant() != null)
@@ -97,7 +100,7 @@ public class CartService {
                 : item.getProduct().getStockQty();
 
         if (stockAvailable < quantity) {
-            throw new RuntimeException("Insufficient stock. Available: " + stockAvailable);
+            throw new BadRequestException("Insufficient stock. Available: " + stockAvailable);
         }
 
         item.setQuantity(quantity);
@@ -107,10 +110,10 @@ public class CartService {
     @Transactional
     public void removeItem(Long userId, Long itemId) {
         CartItem item = cartRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + itemId));
 
         if (!item.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized access to cart item");
+            throw new ForbiddenException("Unauthorized access to cart item");
         }
 
         cartRepository.delete(item);
@@ -124,13 +127,13 @@ public class CartService {
     public void validateCart(Long userId) {
         List<CartItem> items = cartRepository.findByUserId(userId);
         if (items.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new BadRequestException("Cart is empty");
         }
 
         for (CartItem item : items) {
             Product product = item.getProduct();
             if (!product.isActive()) {
-                throw new RuntimeException("Product '" + product.getName() + "' is no longer active.");
+                throw new BadRequestException("Product '" + product.getName() + "' is no longer active.");
             }
 
             int stockAvailable = (item.getVariant() != null)
@@ -138,7 +141,7 @@ public class CartService {
                     : product.getStockQty();
 
             if (stockAvailable < item.getQuantity()) {
-                throw new RuntimeException("Stock changed. Product '" + product.getName() + "' has insufficient stock.");
+                throw new BadRequestException("Stock changed. Product '" + product.getName() + "' has insufficient stock.");
             }
         }
     }

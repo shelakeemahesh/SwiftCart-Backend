@@ -3,6 +3,8 @@ package com.swiftcart.security.oauth2;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ import java.util.Base64;
 
 @Component
 public class HttpCookieOAuth2AuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+    private static final Logger log = LoggerFactory.getLogger(HttpCookieOAuth2AuthorizationRequestRepository.class);
     public static final String OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
     public static final String REDIRECT_URI_PARAM_COOKIE_NAME = "oauth2_redirect_uri";
     private static final int cookieExpireSeconds = 180;
@@ -35,10 +38,10 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
             return;
         }
 
-        addCookie(response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, serialize(authorizationRequest), cookieExpireSeconds);
+        addCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME, serialize(authorizationRequest), cookieExpireSeconds);
         String redirectUriAfterLogin = request.getParameter("redirect_uri");
         if (StringUtils.hasText(redirectUriAfterLogin)) {
-            addCookie(response, REDIRECT_URI_PARAM_COOKIE_NAME, redirectUriAfterLogin, cookieExpireSeconds);
+            addCookie(request, response, REDIRECT_URI_PARAM_COOKIE_NAME, redirectUriAfterLogin, cookieExpireSeconds);
         }
     }
 
@@ -66,26 +69,29 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
         return java.util.Optional.empty();
     }
 
-    private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
+    private boolean isSecure(HttpServletRequest request) {
+        if (request == null) return false;
+        return request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"))
+                || "https".equalsIgnoreCase(request.getHeader("x-forwarded-proto"));
+    }
+
+    private void addCookie(HttpServletRequest request, HttpServletResponse response, String name, String value, int maxAge) {
+        boolean secure = isSecure(request);
         String cookieHeader = String.format(
-            "%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=None; Secure",
-            name, value, maxAge
+            "%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax%s",
+            name, value, maxAge, secure ? "; Secure" : ""
         );
         response.addHeader("Set-Cookie", cookieHeader);
     }
 
     private void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals(name)) {
-                    cookie.setValue("");
-                    cookie.setPath("/");
-                    cookie.setMaxAge(0);
-                    response.addCookie(cookie);
-                }
-            }
-        }
+        boolean secure = isSecure(request);
+        String cookieHeader = String.format(
+            "%s=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax%s",
+            name, secure ? "; Secure" : ""
+        );
+        response.addHeader("Set-Cookie", cookieHeader);
     }
 
     private String serialize(OAuth2AuthorizationRequest request) {
@@ -96,18 +102,22 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
             oos.flush();
             return Base64.getUrlEncoder().encodeToString(bos.toByteArray());
         } catch (Exception e) {
-            throw new RuntimeException("Could not serialize OAuth2 request", e);
+            log.error("Could not serialize OAuth2 request: {}", e.getMessage(), e);
+            return "";
         }
     }
 
     private OAuth2AuthorizationRequest deserialize(Cookie cookie) {
         try {
+            if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
+                return null;
+            }
             byte[] bytes = Base64.getUrlDecoder().decode(cookie.getValue());
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
             ObjectInputStream ois = new ObjectInputStream(bis);
             return (OAuth2AuthorizationRequest) ois.readObject();
         } catch (Exception e) {
-            throw new RuntimeException("Could not deserialize OAuth2 request", e);
+            return null;
         }
     }
 }

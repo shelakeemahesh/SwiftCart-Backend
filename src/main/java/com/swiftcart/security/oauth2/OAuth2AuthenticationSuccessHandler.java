@@ -24,7 +24,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final AuthService authService;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
-    @Value("${app.oauth2.authorizedRedirectUris:http://localhost:5173/oauth2/callback,http://localhost:3000/oauth2/callback,http://localhost:4173/oauth2/callback,https://swiftcart.vercel.app/oauth2/callback}")
+    @Value("${app.oauth2.authorizedRedirectUris:http://localhost:5173/oauth2/callback,http://localhost:3000/oauth2/callback,http://localhost:4173/oauth2/callback,https://swiftcart.vercel.app/oauth2/callback,https://swiftcart-frontend.vercel.app/oauth2/callback}")
     private List<String> authorizedRedirectUris;
 
     @Value("${app.frontend.domain:http://localhost:5173}")
@@ -41,9 +41,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         try {
             targetUrl = determineTargetUrl(request, response, authentication);
         } catch (IllegalArgumentException ex) {
-            String fallbackUrl = (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
-                    ? authorizedRedirectUris.get(0).split(",")[0].trim().replace("\"", "").replace("'", "")
-                    : "http://localhost:5173/oauth2/callback";
+            String fallbackUrl = getDefaultRedirectUrl(request);
             targetUrl = UriComponentsBuilder.fromUriString(fallbackUrl)
                     .queryParam("error", ex.getMessage())
                     .build().toUriString();
@@ -66,19 +64,29 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             throw new IllegalArgumentException("Sorry! We've got an Unauthorized Redirect URI and can't proceed with the authentication");
         }
 
-        String targetUrl = redirectUri.orElse(
-                (authorizedRedirectUris != null && !authorizedRedirectUris.isEmpty())
-                ? authorizedRedirectUris.get(0).split(",")[0].trim().replace("\"", "").replace("'", "")
-                : "http://localhost:5173/oauth2/callback"
-        );
+        String targetUrl = redirectUri.orElseGet(() -> getDefaultRedirectUrl(request));
 
         CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
-        AuthResponse authResponse = authService.generateAuthResponse(userPrincipal.getUser());
+        AuthResponse authResponse = authService.issueTokenResponse(userPrincipal.getUser());
 
         return UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("token", authResponse.getAccessToken())
                 .queryParam("refreshToken", authResponse.getRefreshToken())
                 .build().toUriString();
+    }
+
+    private String getDefaultRedirectUrl(HttpServletRequest request) {
+        boolean isSecure = request != null && (request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"))
+                || "https".equalsIgnoreCase(request.getHeader("x-forwarded-proto")));
+
+        if (frontendDomain != null && !frontendDomain.isBlank() && !frontendDomain.contains("localhost")) {
+            return frontendDomain.replaceAll("/+$", "") + "/oauth2/callback";
+        }
+        if (isSecure) {
+            return "https://swiftcart-frontend.vercel.app/oauth2/callback";
+        }
+        return "http://localhost:5173/oauth2/callback";
     }
 
     protected void clearAuthenticationAttributes(HttpServletRequest request, HttpServletResponse response) {
@@ -108,6 +116,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 }
             }
 
+            // Allow any vercel.app deployment for swiftcart (production or preview branches)
+            if (clientHost.endsWith(".vercel.app") && (clientHost.contains("swiftcart") || clientHost.equals("vercel.app"))) {
+                return true;
+            }
+
             // Check against configured authorizedRedirectUris
             if (authorizedRedirectUris != null) {
                 for (String rawUri : authorizedRedirectUris) {
@@ -119,11 +132,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         try {
                             URI authorizedURI = URI.create(cleanUri);
                             if (authorizedURI.getHost() != null && authorizedURI.getHost().equalsIgnoreCase(clientHost)) {
-                                int authPort = authorizedURI.getPort() != -1 ? authorizedURI.getPort() : (authorizedURI.getScheme() != null && authorizedURI.getScheme().equalsIgnoreCase("https") ? 443 : 80);
-                                int clientPort = clientRedirectUri.getPort() != -1 ? clientRedirectUri.getPort() : (clientRedirectUri.getScheme() != null && clientRedirectUri.getScheme().equalsIgnoreCase("https") ? 443 : 80);
-                                if (authPort == clientPort) {
-                                    return true;
-                                }
+                                return true;
                             }
                         } catch (Exception ignored) {}
                     }

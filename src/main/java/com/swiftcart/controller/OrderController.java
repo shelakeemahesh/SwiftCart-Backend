@@ -26,6 +26,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
@@ -103,24 +105,78 @@ public class OrderController {
         String cleanUuid = orderUuid.replaceAll("[^a-zA-Z0-9-]", "");
         Order order = orderService.getOrderDetail(cleanUuid);
 
-        String invoiceText = "%PDF-1.4\n" +
-                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
-                "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n" +
-                "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R >>\nendobj\n" +
-                "4 0 obj\n<< /Length 150 >>\nstream\n" +
-                "BT\n/F1 12 Tf\n70 800 Td\n(SwiftCart Invoice PDF - UUID: " + cleanUuid + ") Tj\n" +
-                "0 -20 Td\n(Customer Name: " + user.getName() + ") Tj\n" +
-                "0 -20 Td\n(Total Amount: Rs. " + order.getFinalAmount() + ") Tj\n" +
-                "0 -20 Td\n(Payment Method: " + order.getPaymentMethod() + ") Tj\n" +
-                "ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n" +
-                "0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000203 00000 n\n" +
-                "trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n380\n%%EOF";
-
-        byte[] pdfBytes = invoiceText.getBytes(StandardCharsets.UTF_8);
+        byte[] pdfBytes = generateInvoicePdf(order, user, cleanUuid);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + cleanUuid + ".pdf\"")
                 .body(pdfBytes);
+    }
+
+    private byte[] generateInvoicePdf(Order order, User user, String cleanUuid) {
+        String customerName = (user != null && user.getName() != null) ? user.getName() : "Customer";
+        String amount = (order.getFinalAmount() != null) ? order.getFinalAmount().toPlainString() : "0.00";
+        String paymentMethod = (order.getPaymentMethod() != null) ? order.getPaymentMethod().name() : "N/A";
+        String date = (order.getPlacedAt() != null) ? order.getPlacedAt().toString() : "";
+
+        customerName = customerName.replace("(", "\\(").replace(")", "\\)");
+
+        StringBuilder streamContent = new StringBuilder();
+        streamContent.append("BT\n");
+        streamContent.append("/F1 16 Tf\n");
+        streamContent.append("50 780 Td (SWIFTCART TAX INVOICE) Tj\n");
+        streamContent.append("/F1 11 Tf\n");
+        streamContent.append("0 -30 Td (Invoice / Order UUID: ").append(cleanUuid).append(") Tj\n");
+        streamContent.append("0 -20 Td (Date: ").append(date).append(") Tj\n");
+        streamContent.append("0 -20 Td (Customer: ").append(customerName).append(") Tj\n");
+        streamContent.append("0 -20 Td (Payment Method: ").append(paymentMethod).append(") Tj\n");
+        streamContent.append("0 -20 Td (Payment Status: ").append(order.getPaymentStatus()).append(") Tj\n");
+        streamContent.append("0 -25 Td (Total Amount Paid: Rs. ").append(amount).append(") Tj\n");
+        streamContent.append("0 -40 Td (Thank you for shopping with SwiftCart!) Tj\n");
+        streamContent.append("ET\n");
+
+        byte[] streamBytes = streamContent.toString().getBytes(StandardCharsets.UTF_8);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            List<Long> offsets = new ArrayList<>();
+            baos.write("%PDF-1.4\n".getBytes(StandardCharsets.UTF_8));
+
+            // Object 1: Catalog
+            offsets.add((long) baos.size());
+            baos.write("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n".getBytes(StandardCharsets.UTF_8));
+
+            // Object 2: Pages
+            offsets.add((long) baos.size());
+            baos.write("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n".getBytes(StandardCharsets.UTF_8));
+
+            // Object 3: Page
+            offsets.add((long) baos.size());
+            baos.write("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n".getBytes(StandardCharsets.UTF_8));
+
+            // Object 4: Font
+            offsets.add((long) baos.size());
+            baos.write("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n".getBytes(StandardCharsets.UTF_8));
+
+            // Object 5: Content Stream
+            offsets.add((long) baos.size());
+            String streamHeader = "5 0 obj\n<< /Length " + streamBytes.length + " >>\nstream\n";
+            baos.write(streamHeader.getBytes(StandardCharsets.UTF_8));
+            baos.write(streamBytes);
+            baos.write("\nendstream\nendobj\n".getBytes(StandardCharsets.UTF_8));
+
+            // xref
+            long startxref = baos.size();
+            baos.write(String.format("xref\n0 %d\n0000000000 65535 f \n", offsets.size() + 1).getBytes(StandardCharsets.UTF_8));
+            for (Long offset : offsets) {
+                baos.write(String.format("%010d 00000 n \n", offset).getBytes(StandardCharsets.UTF_8));
+            }
+
+            // trailer
+            baos.write(String.format("trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF", offsets.size() + 1, startxref).getBytes(StandardCharsets.UTF_8));
+            return baos.toByteArray();
+        } catch (IOException e) {
+            return new byte[0];
+        }
     }
 
     @GetMapping("/{orderUuid}/tracking")
@@ -150,7 +206,9 @@ public class OrderController {
                             }
                         }
                     }
-                    String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
+                    String estimatedDelivery = order.getPlacedAt() != null 
+                            ? order.getPlacedAt().toLocalDate().plusDays(4).toString() 
+                            : java.time.LocalDate.now().plusDays(4).toString();
                     int totalItems = order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0;
                     return ResponseEntity.ok(ApiResponse.success(new ActiveOrderDTO(
                             order.getOrderUuid(),
@@ -161,7 +219,7 @@ public class OrderController {
                             totalItems
                     )));
                 })
-                .orElseGet(() -> ResponseEntity.noContent().build());
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.success(null)));
     }
 
     @GetMapping("/{orderUuid}/track")
@@ -206,7 +264,9 @@ public class OrderController {
             );
         }
 
-        String estimatedDelivery = order.getPlacedAt().toLocalDate().plusDays(4).toString();
+        String estimatedDelivery = order.getPlacedAt() != null 
+                ? order.getPlacedAt().toLocalDate().plusDays(4).toString() 
+                : java.time.LocalDate.now().plusDays(4).toString();
         List<TimelineStepDTO> timeline = buildTimeline(order, status);
 
         return ResponseEntity.ok(ApiResponse.success(new OrderTrackingDTO(
@@ -221,7 +281,7 @@ public class OrderController {
 
     private List<TimelineStepDTO> buildTimeline(Order order, String currentMappedStatus) {
         List<TimelineStepDTO> timeline = new ArrayList<>();
-        LocalDateTime placedAt = order.getPlacedAt();
+        LocalDateTime placedAt = order.getPlacedAt() != null ? order.getPlacedAt() : LocalDateTime.now();
 
         List<String> steps = List.of("PLACED", "CONFIRMED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED");
         int currentStepIndex = steps.indexOf(currentMappedStatus);
