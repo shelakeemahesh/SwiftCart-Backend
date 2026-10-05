@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
@@ -66,28 +67,52 @@ public class S3Service {
 
         if (useLocalFallback) {
             try {
-                Files.createDirectories(Paths.get(localUploadDir));
-            } catch (IOException e) {
-                log.error("Failed to create local upload directory: {}", e.getMessage());
+                Path uploadPath = Paths.get(localUploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                log.info("Initialized local upload directory successfully: {}", uploadPath.toAbsolutePath());
+            } catch (Exception e) {
+                log.warn("Failed to create configured upload directory '{}': {}. Falling back to system temporary directory.", localUploadDir, e.getMessage());
+                try {
+                    String tmpDir = System.getProperty("java.io.tmpdir", "/tmp");
+                    Path fallbackPath = Paths.get(tmpDir, "swiftcart-uploads");
+                    if (!Files.exists(fallbackPath)) {
+                        Files.createDirectories(fallbackPath);
+                    }
+                    this.localUploadDir = fallbackPath.toString();
+                    log.info("Initialized fallback temporary upload directory successfully: {}", fallbackPath.toAbsolutePath());
+                } catch (Exception fallbackEx) {
+                    log.error("Failed to create fallback temporary upload directory: {}", fallbackEx.getMessage());
+                }
             }
         }
     }
 
     public String uploadFile(byte[] content, String originalFilename, String contentType) {
         String ext = "";
-        int dot = originalFilename.lastIndexOf('.');
-        if (dot > 0) {
-            ext = originalFilename.substring(dot);
+        if (originalFilename != null) {
+            int dot = originalFilename.lastIndexOf('.');
+            if (dot >= 0 && dot < originalFilename.length() - 1) {
+                String cleanExt = originalFilename.substring(dot).replaceAll("[^a-zA-Z0-9.]", "").toLowerCase();
+                if (cleanExt.length() <= 10) {
+                    ext = cleanExt;
+                }
+            }
         }
-        String uniqueFilename = UUID.randomUUID().toString() + ext;
+        String cleanUniqueFilename = UUID.randomUUID().toString().replace("-", "") + ext;
 
         if (useLocalFallback) {
-            File target = new File(localUploadDir, uniqueFilename);
+            File target = new File(localUploadDir, cleanUniqueFilename);
+            File parent = target.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             try (FileOutputStream fos = new FileOutputStream(target)) {
                 fos.write(content);
-                log.info("Saved image locally to: {}", target.getAbsolutePath());
+                log.info("Saved image locally with id: {}", cleanUniqueFilename);
                 
-                return getBaseUrl() + "/uploads/" + uniqueFilename;
+                return getBaseUrl() + "/uploads/" + cleanUniqueFilename;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to save image locally", e);
             }
@@ -95,15 +120,14 @@ public class S3Service {
             try {
                 PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                         .bucket(bucketName)
-                        .key(uniqueFilename)
+                        .key(cleanUniqueFilename)
                         .contentType(contentType)
                         .acl(ObjectCannedACL.PUBLIC_READ) 
                         .build();
 
                 s3Client.putObject(putObjectRequest, RequestBody.fromBytes(content));
-                String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, uniqueFilename);
-                log.info("Uploaded image to S3: {}", s3Url);
-                return s3Url;
+                log.info("Uploaded image to S3 with id: {}", cleanUniqueFilename);
+                return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, cleanUniqueFilename);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to upload image to S3", e);
             }
@@ -119,5 +143,13 @@ public class S3Service {
             return renderUrl.replaceAll("/+$", "");
         }
         return "http://localhost:8080";
+    }
+
+    public String getLocalUploadDir() {
+        return localUploadDir;
+    }
+
+    public void setLocalUploadDir(String localUploadDir) {
+        this.localUploadDir = localUploadDir;
     }
 }

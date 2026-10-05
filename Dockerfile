@@ -17,6 +17,9 @@ WORKDIR /app
 # Create unprivileged system group and user
 RUN addgroup -S swiftcart && adduser -S swiftcart -G swiftcart
 
+# Pre-create upload directory and set ownership of /app to unprivileged user
+RUN mkdir -p /app/uploads && chown -R swiftcart:swiftcart /app
+
 # Copy jar from build stage with correct ownership
 COPY --from=build --chown=swiftcart:swiftcart /build/target/*.jar app.jar
 
