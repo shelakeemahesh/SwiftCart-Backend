@@ -101,9 +101,12 @@ services:
       - ES_PORT=9200
       - KAFKA_BROKERS=swiftcart-kafka:9092
       - JWT_SECRET=dGhpcy1pcy1hLXN1cGVyLXNlY3JldC1wcm9kdWN0aW9uLWtleS1mb3Itc3dpZnRjYXJ0LWJhY2tlbmQtc2VydmVyLTMyMS1iYXNlNjQ=
+    volumes:
+      - uploads-data:/app/uploads
     restart: on-failure
 
 volumes:
   mysql-data:
   redis-data:
   es-data:
+  uploads-data:

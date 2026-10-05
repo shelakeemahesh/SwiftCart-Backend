@@ -82,6 +82,7 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/v1/payments/razorpay/webhook").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/chat/return-policy").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/chat/message", "/api/v1/chat/ask").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/chat/sync-catalog").hasRole("ADMIN")

@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
@@ -66,9 +67,24 @@ public class S3Service {
 
         if (useLocalFallback) {
             try {
-                Files.createDirectories(Paths.get(localUploadDir));
-            } catch (IOException e) {
-                log.error("Failed to create local upload directory: {}", e.getMessage());
+                Path uploadPath = Paths.get(localUploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                log.info("Initialized local upload directory successfully: {}", uploadPath.toAbsolutePath());
+            } catch (Exception e) {
+                log.warn("Failed to create configured upload directory '{}': {}. Falling back to system temporary directory.", localUploadDir, e.getMessage());
+                try {
+                    String tmpDir = System.getProperty("java.io.tmpdir", "/tmp");
+                    Path fallbackPath = Paths.get(tmpDir, "swiftcart-uploads");
+                    if (!Files.exists(fallbackPath)) {
+                        Files.createDirectories(fallbackPath);
+                    }
+                    this.localUploadDir = fallbackPath.toString();
+                    log.info("Initialized fallback temporary upload directory successfully: {}", fallbackPath.toAbsolutePath());
+                } catch (Exception fallbackEx) {
+                    log.error("Failed to create fallback temporary upload directory: {}", fallbackEx.getMessage());
+                }
             }
         }
     }
@@ -83,6 +99,10 @@ public class S3Service {
 
         if (useLocalFallback) {
             File target = new File(localUploadDir, uniqueFilename);
+            File parent = target.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             try (FileOutputStream fos = new FileOutputStream(target)) {
                 fos.write(content);
                 log.info("Saved image locally to: {}", target.getAbsolutePath());
@@ -119,5 +139,13 @@ public class S3Service {
             return renderUrl.replaceAll("/+$", "");
         }
         return "http://localhost:8080";
+    }
+
+    public String getLocalUploadDir() {
+        return localUploadDir;
+    }
+
+    public void setLocalUploadDir(String localUploadDir) {
+        this.localUploadDir = localUploadDir;
     }
 }

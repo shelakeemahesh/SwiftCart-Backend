@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database fallback search service when Elasticsearch cluster is unavailable.
 - Active order tracking fallback using JPA repository and automated refund requests for chatbot cancellation.
 
+### Fixed
+- Resolved `/app/uploads` permission error during container startup by pre-creating directory with unprivileged user ownership in Dockerfile.
+- Added resilient fallback in `S3Service` to system temporary directory when primary upload path is non-writable.
+- Mounted persistent `uploads-data` volume in `docker-compose.yml` and exposed static resource mapping for `/uploads/**`.
+
 ---
 
 ## [0.1.0] - 2026-09-21
