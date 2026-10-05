@@ -8,15 +8,20 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class RedisFallbackService {
 
     private static final Logger log = LoggerFactory.getLogger(RedisFallbackService.class);
+    private static final long COOLDOWN_MILLIS = 30_000L; // 30 seconds circuit breaker cooldown
 
     private final StringRedisTemplate redisTemplate;
     private final Map<String, String> inMemoryStore = new ConcurrentHashMap<>();
     private final Map<String, Long> inMemoryExpiry = new ConcurrentHashMap<>();
+
+    private volatile long lastFailureTime = 0L;
+    private final AtomicBoolean redisDownLogged = new AtomicBoolean(false);
 
     public RedisFallbackService(java.util.Optional<StringRedisTemplate> redisTemplate) {
         this.redisTemplate = redisTemplate.orElse(null);
@@ -25,13 +30,39 @@ public class RedisFallbackService {
         }
     }
 
+    private boolean isRedisAvailable() {
+        if (redisTemplate == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        // If within cooldown period after a connection failure, bypass network call immediately
+        return (now - lastFailureTime) >= COOLDOWN_MILLIS;
+    }
+
+    private void handleRedisFailure(String operation, Exception e) {
+        lastFailureTime = System.currentTimeMillis();
+        if (redisDownLogged.compareAndSet(false, true)) {
+            log.warn("Redis is currently unavailable (operation: {}). Entering {}ms cooldown; degrading gracefully to in-memory store. Cause: {}",
+                    operation, COOLDOWN_MILLIS, e.getMessage());
+        } else {
+            log.debug("Redis operation {} failed: {}", operation, e.getMessage());
+        }
+    }
+
+    private void handleRedisSuccess() {
+        if (redisDownLogged.compareAndSet(true, false)) {
+            log.info("Redis connection restored. Resuming normal Redis operations.");
+        }
+    }
+
     public void set(String key, String value, Duration ttl) {
-        if (redisTemplate != null) {
+        if (isRedisAvailable()) {
             try {
                 redisTemplate.opsForValue().set(key, value, ttl);
+                handleRedisSuccess();
                 return;
             } catch (Exception e) {
-                log.warn("Redis write failed for key: {}. Falling back to in-memory store. Error: {}", key, e.getMessage());
+                handleRedisFailure("set", e);
             }
         }
         inMemoryStore.put(key, value);
@@ -39,11 +70,13 @@ public class RedisFallbackService {
     }
 
     public String get(String key) {
-        if (redisTemplate != null) {
+        if (isRedisAvailable()) {
             try {
-                return redisTemplate.opsForValue().get(key);
+                String val = redisTemplate.opsForValue().get(key);
+                handleRedisSuccess();
+                return val;
             } catch (Exception e) {
-                log.warn("Redis read failed for key: {}. Falling back to in-memory store. Error: {}", key, e.getMessage());
+                handleRedisFailure("get", e);
             }
         }
         Long expiry = inMemoryExpiry.get(key);
@@ -56,12 +89,13 @@ public class RedisFallbackService {
     }
 
     public void delete(String key) {
-        if (redisTemplate != null) {
+        if (isRedisAvailable()) {
             try {
                 redisTemplate.delete(key);
+                handleRedisSuccess();
                 return;
             } catch (Exception e) {
-                log.warn("Redis delete failed for key: {}. Falling back to in-memory store. Error: {}", key, e.getMessage());
+                handleRedisFailure("delete", e);
             }
         }
         inMemoryStore.remove(key);
@@ -69,15 +103,16 @@ public class RedisFallbackService {
     }
 
     public Long incrementAndExpire(String key, Duration ttl) {
-        if (redisTemplate != null) {
+        if (isRedisAvailable()) {
             try {
                 Long val = redisTemplate.opsForValue().increment(key);
                 if (val != null && val.equals(1L)) {
                     redisTemplate.expire(key, ttl);
                 }
+                handleRedisSuccess();
                 return val;
             } catch (Exception e) {
-                log.warn("Redis increment failed for key: {}. Falling back to in-memory store. Error: {}", key, e.getMessage());
+                handleRedisFailure("increment", e);
             }
         }
         
